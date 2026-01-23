@@ -1,0 +1,1069 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Shoga's Test Room</title>
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    <style>
+        /* Variables */
+        :root {
+            --bg-color: #f0f2f5;
+            --app-bg: #fff;
+            --text-color: #333;
+            --sub-text-color: #666;
+            --header-bg: rgba(255, 255, 255, 0.95);
+            --header-border: rgba(0, 0, 0, 0.05);
+            --chat-bg: #bacee0;
+            --input-area-bg: #fff;
+            --input-bg: #f8f9fa;
+            --input-border: #eee;
+            --my-msg-bg: #fef01b;
+            --my-msg-text: #3b1e1e;
+            --other-msg-bg: #fff;
+            --other-msg-text: #2c3e50;
+            --time-text: #555;
+            --system-msg-bg: rgba(0, 0, 0, 0.1);
+            --system-msg-text: #555;
+            --login-bg: linear-gradient(135deg, #2c3e50 0%, #4ca1af 100%);
+            --login-box-bg: rgba(255, 255, 255, 0.95);
+
+            --lina-bubble-bg: linear-gradient(145deg, #fdfcff 0%, #f3efff 100%);
+            --lina-bubble-text: #5b21b6;
+            --lina-bubble-border: rgba(124, 58, 237, 0.25);
+            --lina-shadow: 0 4px 15px rgba(139, 92, 246, 0.2), 0 0 15px rgba(139, 92, 246, 0.15);
+
+            --lia-bubble-bg: linear-gradient(145deg, #fff0f5 0%, #fff5f7 100%);
+            --lia-bubble-text: #be185d;
+            --lia-bubble-border: rgba(219, 39, 119, 0.25);
+            --lia-shadow: 0 4px 15px rgba(219, 39, 119, 0.2), 0 0 15px rgba(219, 39, 119, 0.15);
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg-color: #121212;
+                --app-bg: #1e1e1e;
+                --text-color: #e0e0e0;
+                --sub-text-color: #aaa;
+                --header-bg: rgba(30, 30, 30, 0.95);
+                --header-border: rgba(255, 255, 255, 0.1);
+                --chat-bg: #070b14;
+                --input-area-bg: #1e1e1e;
+                --input-bg: #2c2c2c;
+                --input-border: #444;
+                --my-msg-bg: #9b7700;
+                --my-msg-text: #ffffff;
+                --other-msg-bg: #333;
+                --other-msg-text: #ddd;
+                --time-text: #888;
+                --system-msg-bg: rgba(255, 255, 255, 0.1);
+                --system-msg-text: #bbb;
+                --login-bg: linear-gradient(135deg, #1a2a3a 0%, #2c3e50 100%);
+                --login-box-bg: rgba(30, 30, 30, 0.95);
+
+                --lina-bubble-bg: linear-gradient(145deg, #2e1065 0%, #1e1b4b 100%);
+                --lina-bubble-text: #e9d5ff;
+                --lina-bubble-border: rgba(139, 92, 246, 0.5);
+                --lina-shadow: 0 8px 25px rgba(0, 0, 0, 0.6), 0 0 20px rgba(139, 92, 246, 0.35);
+
+                --lia-bubble-bg: linear-gradient(145deg, #500724 0%, #3a0318 100%);
+                --lia-bubble-text: #fbcfe8;
+                --lia-bubble-border: rgba(219, 39, 119, 0.5);
+                --lia-shadow: 0 8px 25px rgba(0, 0, 0, 0.6), 0 0 20px rgba(219, 39, 119, 0.35);
+            }
+        }
+
+        /* Layout & Base */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            height: 100vh;
+            height: 100dvh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            color: var(--text-color);
+        }
+
+        .app-container {
+            width: 100%;
+            height: 100%;
+            background: var(--app-bg);
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        @media (min-width: 500px) {
+            .app-container {
+                max-width: 400px;
+                height: 90vh;
+                border-radius: 24px;
+                border: 1px solid #e0e0e0;
+            }
+        }
+
+        .screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            background: var(--app-bg);
+            z-index: 10;
+            transition: opacity 0.3s ease;
+        }
+
+        .hidden {
+            display: none !important;
+            opacity: 0;
+        }
+
+        /* Login View */
+        #login-screen {
+            z-index: 20;
+            justify-content: center;
+            align-items: center;
+            padding: 40px;
+            background: var(--login-bg);
+            overflow-y: auto;
+        }
+
+        .login-box {
+            background: var(--login-box-bg);
+            padding: 30px 20px;
+            border-radius: 20px;
+            width: 100%;
+            text-align: center;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .app-title {
+            font-size: 24px;
+            font-weight: 800;
+            color: #333;
+            margin-bottom: 4px;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            .app-title {
+                color: #fff;
+            }
+        }
+
+        .key-input {
+            width: 100%;
+            padding: 14px;
+            border: 2px solid var(--input-border);
+            border-radius: 12px;
+            font-size: 14px;
+            outline: none;
+            transition: 0.2s;
+            background: var(--input-bg);
+            color: var(--text-color);
+        }
+
+        .key-input:focus {
+            border-color: #4ca1af;
+        }
+
+        .btn-enter {
+            width: 100%;
+            background: #2c3e50;
+            color: #fff;
+            border: none;
+            border-radius: 12px;
+            padding: 14px;
+            font-size: 15px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.2s;
+            margin-top: 5px;
+        }
+
+        .btn-enter:hover {
+            background: #34495e;
+            transform: translateY(-1px);
+        }
+
+        .btn-enter:active {
+            transform: scale(0.98);
+        }
+
+        .qr-divider {
+            display: flex;
+            align-items: center;
+            font-size: 12px;
+            color: #888;
+            margin: 10px 0;
+        }
+
+        .qr-divider::before,
+        .qr-divider::after {
+            content: "";
+            flex: 1;
+            height: 1px;
+            background: #ddd;
+            margin: 0 10px;
+        }
+
+        .qr-btn-group {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-qr {
+            flex: 1;
+            background: var(--input-bg);
+            border: 1px solid var(--input-border);
+            color: var(--text-color);
+            padding: 10px;
+            border-radius: 12px;
+            font-size: 13px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+            transition: 0.2s;
+        }
+
+        #reader {
+            width: 100%;
+            border-radius: 12px;
+            overflow: hidden;
+            margin-top: 10px;
+            display: none;
+        }
+
+        #reader video {
+            object-fit: cover;
+            border-radius: 12px;
+        }
+
+        .btn-stop-scan {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            margin-top: 10px;
+            cursor: pointer;
+            display: none;
+        }
+
+        /* Chat View */
+        #chat-screen {
+            z-index: 10;
+            background: var(--chat-bg);
+        }
+
+        .chat-header {
+            height: 56px;
+            background: var(--header-bg);
+            backdrop-filter: blur(10px);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 16px;
+            border-bottom: 1px solid var(--header-border);
+            color: var(--text-color);
+        }
+
+        .header-info {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .room-name {
+            font-weight: bold;
+            font-size: 16px;
+            color: var(--text-color);
+        }
+
+        .my-nick {
+            font-size: 11px;
+            color: #1a73e8;
+        }
+
+        .btn-logout {
+            font-size: 12px;
+            color: var(--sub-text-color);
+            border: 1px solid var(--input-border);
+            background: transparent;
+            padding: 6px 12px;
+            border-radius: 16px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .chat-area {
+            flex: 1;
+            overflow-y: auto;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            scroll-behavior: auto;
+        }
+
+        .msg-row {
+            display: flex;
+            flex-direction: column;
+            max-width: 75%;
+            position: relative;
+        }
+
+        .msg-row.me {
+            align-self: flex-end;
+            align-items: flex-end;
+        }
+
+        .msg-row.other {
+            align-self: flex-start;
+            align-items: flex-start;
+        }
+
+        .sender-name {
+            font-size: 11px;
+            font-weight: 800;
+            margin-bottom: 4px;
+            margin-left: 4px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            text-shadow:
+                -1px -1px 0 var(--app-bg),
+                1px -1px 0 var(--app-bg),
+                -1px 1px 0 var(--app-bg),
+                1px 1px 0 var(--app-bg);
+        }
+
+        .bubble-container {
+            display: flex;
+            align-items: flex-end;
+            gap: 4px;
+        }
+
+        .msg-row.me .bubble-container {
+            flex-direction: row-reverse;
+        }
+
+        .bubble {
+            padding: 10px 14px;
+            border-radius: 18px;
+            font-size: 15px;
+            line-height: 1.5;
+            word-break: break-all;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+        }
+
+        .msg-row.me .bubble {
+            background: var(--my-msg-bg);
+            color: var(--my-msg-text);
+            border-top-right-radius: 4px;
+        }
+
+        .msg-row.other .bubble {
+            background: var(--other-msg-bg);
+            color: var(--other-msg-text);
+            border-top-left-radius: 4px;
+        }
+
+        .msg-row.lina-msg .bubble {
+            background: var(--lina-bubble-bg);
+            color: var(--lina-bubble-text);
+            border: 1px solid var(--lina-bubble-border);
+            box-shadow: var(--lina-shadow);
+            position: relative;
+            animation: lina-entry 0.6s ease-out;
+            overflow: hidden;
+        }
+
+        .msg-row.lina-msg .bubble::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: rgba(255, 255, 255, 0.4);
+            pointer-events: none;
+        }
+
+        .msg-row.lia-msg .bubble {
+            background: var(--lia-bubble-bg);
+            color: var(--lia-bubble-text);
+            border: 1px solid var(--lia-bubble-border);
+            box-shadow: var(--lia-shadow);
+            position: relative;
+            animation: lina-entry 0.6s ease-out;
+            overflow: hidden;
+        }
+
+        .msg-row.lia-msg .bubble::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: rgba(255, 255, 255, 0.4);
+            pointer-events: none;
+        }
+
+        .badge-ai {
+            background: #7c3aed;
+            color: #fff;
+            font-size: 8px;
+            padding: 1px 5px;
+            border-radius: 4px;
+            font-weight: 800;
+            text-shadow: none;
+            letter-spacing: 0.5px;
+            box-shadow: 0 1px 4px rgba(124, 58, 237, 0.3);
+        }
+
+        .msg-row.lia-msg .badge-ai {
+            background: #db2777;
+            box-shadow: 0 1px 4px rgba(219, 39, 119, 0.3);
+        }
+
+        @keyframes lina-entry {
+            from {
+                opacity: 0;
+                transform: translateY(12px) scale(0.96);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        .msg-time {
+            font-size: 10px;
+            color: var(--time-text);
+            min-width: 50px;
+            margin-bottom: 2px;
+        }
+
+        .msg-row.me .msg-time {
+            text-align: right;
+        }
+
+        .system-msg {
+            align-self: center;
+            background: var(--system-msg-bg);
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 11px;
+            color: var(--system-msg-text);
+            margin: 10px 0;
+        }
+
+        .input-area {
+            background: var(--input-area-bg);
+            padding: 12px;
+            display: flex;
+            gap: 8px;
+            border-top: 1px solid var(--header-border);
+        }
+
+        #msg-input {
+            flex: 1;
+            padding: 12px 16px;
+            border: 1px solid var(--input-border);
+            border-radius: 24px;
+            outline: none;
+            background: var(--input-bg);
+            color: var(--text-color);
+            font-size: 15px;
+        }
+
+        #send-btn {
+            background: #fef01b;
+            border: none;
+            width: 46px;
+            height: 46px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: #3b1e1e;
+            font-size: 18px;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+        }
+
+        #new-msg-alert {
+            position: absolute;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 13px;
+            cursor: pointer;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+            z-index: 50;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s;
+        }
+
+        #new-msg-alert.show {
+            opacity: 1;
+            pointer-events: auto;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="app-container">
+        <div id="login-screen" class="screen">
+            <div class="login-box">
+                <div class="app-title">Shoga's Test Room</div>
+
+                <div style="font-size: 13px; color: var(--sub-text-color); margin-bottom: 14px;">
+                    Room ID: <span id="current-room-display"
+                        style="font-weight: bold; color: var(--text-color);">Laboratory</span>
+                    <button type="button" onclick="changeRoomId()"
+                        style="background: none; border: none; color: #4ca1af; font-size: 12px; cursor: pointer; text-decoration: underline; padding: 0; margin-left: 8px;">변경</button>
+                </div>
+
+                <input type="text" id="nickname-input" class="key-input" placeholder="닉네임 (미입력 시 랜덤)" maxlength="20"
+                    style="margin-bottom: 8px;">
+
+                <input type="password" id="api-key-input" class="key-input" placeholder="보안 키를 입력하세요">
+
+                <div
+                    style="display: flex; justify-content: space-between; align-items: center; margin-top: 4px; margin-bottom: 4px; padding: 0 4px;">
+                    <label
+                        style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--sub-text-color); cursor: pointer;">
+                        <input type="checkbox" id="auto-login-checkbox" style="cursor: pointer;"> 자동 로그인
+                    </label>
+                    <button type="button" onclick="handleConsoleLogin()"
+                        style="background: none; border: none; color: #4ca1af; font-size: 12px; cursor: pointer; text-decoration: underline; padding: 0;">콘솔에
+                        로그인</button>
+                </div>
+
+                <button class="btn-enter" onclick="handleKeyLogin()">입장하기</button>
+
+                <div class="qr-divider">또는 QR 코드로 입력</div>
+                <div class="qr-btn-group">
+                    <button class="btn-qr" onclick="startQrScan()">카메라</button>
+                    <button class="btn-qr" onclick="document.getElementById('qr-input-file').click()">앨범</button>
+                </div>
+
+                <div id="reader"></div>
+                <button id="btn-stop-scan" class="btn-stop-scan" onclick="stopQrScan()">스캔 취소</button>
+
+                <input type="file" id="qr-input-file" accept="image/*" hidden onchange="scanFromFile(this)">
+                <p id="error-msg" style="color: #e74c3c; font-size: 12px; margin-top: 10px;"></p>
+            </div>
+        </div>
+
+        <div id="chat-screen" class="screen hidden">
+            <div class="chat-header">
+                <div class="header-info">
+                    <span class="room-name">Laboratory</span>
+                    <span class="my-nick" id="my-nick-display">...</span>
+                </div>
+                <button class="btn-logout" onclick="handleLogout()">로그아웃</button>
+            </div>
+
+            <div id="chat-area" class="chat-area"></div>
+
+            <div id="new-msg-alert" onclick="scrollToBottom()">
+                <span>새 메시지</span>
+            </div>
+
+            <div class="input-area">
+                <input type="text" id="msg-input" placeholder="메시지를 입력하세요"
+                    onkeypress="if(event.key==='Enter') sendMessage()">
+                <button id="send-btn">➤</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        // Firebase Auth & Database Module
+        import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getDatabase, ref, push, onChildAdded, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+        import { getAuth, signInAnonymously, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+
+        const baseConfig = {
+            authDomain: "shoga-intermediary.firebaseapp.com",
+            projectId: "shoga-intermediary",
+            storageBucket: "shoga-intermediary.firebasestorage.app",
+            messagingSenderId: "696629323825",
+            appId: "1:696629323825:web:fede1b0d1dd1695afccd10",
+            measurementId: "G-E4L52Z0HRE"
+        };
+
+        let currentRoomId = "Laboratory";
+        let app, db, auth, user;
+        let myNick = "";
+        let isChatLoaded = false;
+        let isInitialLoad = true;
+
+        // Core Initialization
+        window.addEventListener('DOMContentLoaded', () => {
+            const savedNick = localStorage.getItem('shoga_user_nick');
+            if (savedNick) {
+                document.getElementById('nickname-input').value = savedNick;
+            }
+
+            const savedRoomId = localStorage.getItem('shoga_room_id');
+            if (savedRoomId) {
+                currentRoomId = savedRoomId;
+            }
+            document.getElementById('current-room-display').innerText = currentRoomId;
+
+            const autoLogin = localStorage.getItem('shoga_auto_login');
+            const savedKey = localStorage.getItem('shoga_api_key');
+            if (autoLogin === 'true' && savedKey) {
+                document.getElementById('api-key-input').value = savedKey;
+                document.getElementById('auto-login-checkbox').checked = true;
+                handleKeyLogin();
+            }
+
+            setupSendButton();
+            setupScrollListener();
+        });
+
+        window.changeRoomId = () => {
+            const newRoom = prompt("입장할 Room ID를 입력하세요:", currentRoomId);
+            if (newRoom && newRoom.trim() !== "") {
+                currentRoomId = newRoom.trim();
+                document.getElementById('current-room-display').innerText = currentRoomId;
+                localStorage.setItem('shoga_room_id', currentRoomId);
+            }
+        };
+
+        function setupSendButton() {
+            const btn = document.getElementById('send-btn');
+            const handleSend = (e) => {
+                e.preventDefault();
+                sendMessage();
+            };
+            btn.addEventListener('mousedown', handleSend);
+            btn.addEventListener('touchstart', handleSend);
+        }
+
+        function setupScrollListener() {
+            const chatArea = document.getElementById('chat-area');
+            const alertBadge = document.getElementById('new-msg-alert');
+
+            chatArea.addEventListener('scroll', () => {
+                const threshold = 50;
+                const isBottom = chatArea.scrollHeight - chatArea.scrollTop - chatArea.clientHeight <= threshold;
+                if (isBottom) {
+                    alertBadge.classList.remove('show');
+                }
+            });
+        }
+
+        window.scrollToBottom = () => {
+            const chatArea = document.getElementById('chat-area');
+            chatArea.scrollTop = chatArea.scrollHeight;
+            document.getElementById('new-msg-alert').classList.remove('show');
+        };
+
+        // Static Resources for Nickname Generation
+        const verbs = [
+            "춤추는", "날아다니는", "코딩하는", "노래하는", "잠자는", "라면먹는", "달리는", "멍때리는", "수영하는", "책읽는",
+            "게임하는", "청소하는", "요리하는", "여행하는", "꿈꾸는", "기도하는", "운동하는", "산책하는", "운전하는", "공부하는",
+            "비트타는", "그림그리는", "소리지르는", "속삭이는", "숨어있는", "야근하는", "출근하는", "퇴근하는", "사랑하는", "미워하는",
+            "생각하는", "낚시하는", "등산하는", "쇼핑하는", "커피마시는", "치킨먹는", "피자먹는", "물마시는", "전화하는", "카톡하는",
+            "유튜브보는", "넷플보는", "인스타하는", "트윗하는", "눈물흘리는", "웃고있는", "화내고있는", "삐져있는", "달나라가는", "우주가는",
+            "땅파는", "집짓는", "부수는", "고치는", "도망치는", "쫓아가는", "숨쉬는", "하품하는", "기지개켜는", "세수하는",
+            "샤워하는", "목욕하는", "양치하는", "머리감는", "화장하는", "면도하는", "옷입는", "신발신는", "안경쓴", "모자쓴",
+            "마스크쓴", "가방멘", "우산쓴", "자전거타는", "버스탄", "지하철탄", "비행기탄", "배탄", "로켓탄", "우주선탄",
+            "헤엄치는", "다이빙하는", "서핑하는", "스키타는", "보드타는", "스케이트타는", "축구하는", "농구하는", "야구하는", "배구하는",
+            "피구하는", "족구하는", "탁구하는", "테니스치는", "골프치는", "볼링치는", "당구치는", "포켓볼치는", "체스두는", "바둑두는",
+            "장기두는", "오목두는", "고스톱치는", "포커치는", "마술하는", "연기하는", "노래부르는", "랩하는", "디제잉하는", "드럼치는",
+            "기타치는", "피아노치는", "바이올린켜는", "플룻부는", "트럼펫부는", "지휘하는", "박수치는", "응원하는", "구경하는", "촬영하는",
+            "녹음하는", "방송하는", "스트리밍하는", "채굴하는", "투자하는", "저축하는", "소비하는", "기부하는", "봉사하는", "치료하는", "개발하는"
+        ];
+
+        const adjectives = [
+            "행복한", "슬픈", "배고픈", "시크한", "소심한", "용감한", "똑똑한", "수상한", "귀여운", "무서운",
+            "화려한", "투명한", "강력한", "게으른", "부지런한", "조용한", "시끄러운", "우아한", "엉뚱한", "섹시한",
+            "진지한", "유쾌한", "냉정한", "따뜻한", "친절한", "불친절한", "가난한", "부유한", "건강한", "아픈",
+            "피곤한", "상쾌한", "지루한", "재미있는", "신비로운", "평범한", "특별한", "이상한", "미친", "제정신인",
+            "순수한", "타락한", "검은", "하얀", "빨간", "파란", "노란", "초록", "보라", "분홍",
+            "황금", "은빛", "무지개", "빛나는", "어두운", "흐릿한", "선명한", "거대한", "조그만", "길쭉한",
+            "뚱뚱한", "날씬한", "통통한", "마른", "근육질의", "말랑한", "딱딱한", "부드러운", "거친", "매끄러운",
+            "차가운", "뜨거운", "미지근한", "매운", "달콤한", "쓴", "신", "짠", "싱거운", "고소한",
+            "느끼한", "담백한", "비싼", "싼", "새로운", "오래된", "빈티지", "모던한", "클래식한", "힙한",
+            "인싸", "아싸", "천재", "바보", "고수", "중수", "하수", "초보", "만렙", "뉴비",
+            "전설의", "환상의", "최고의", "최악의", "무적의", "유일한", "흔한", "희귀한", "멸종위기", "살아남은",
+            "죽지않는", "영원한", "일시적인", "가짜", "진짜", "원조", "짝퉁", "국산", "수입", "외계",
+            "지옥에서온", "천국에서온", "미래에서온", "과거에서온", "이세계", "저세상", "킹받는", "야무진", "엄청난", "대단한"
+        ];
+
+        const animals = [
+            "호랑이", "사자", "토끼", "다람쥐", "펭귄", "고양이", "강아지", "쿼카", "알파카", "오리",
+            "독수리", "거북이", "판다", "너구리", "여우", "곰돌이", "돌고래", "부엉이", "기린", "코끼리",
+            "햄스터", "앵무새", "수달", "하마", "미어캣", "치타", "표범", "재규어", "퓨마", "하이에나",
+            "늑대", "코요테", "들개", "반달곰", "북극곰", "불곰", "팬더", "래서팬더", "나무늘보", "두더지",
+            "고슴도치", "박쥐", "캥거루", "코알라", "웜뱃", "오리너구리", "타조", "공작", "학", "두루미",
+            "백조", "거위", "닭", "병아리", "비둘기", "까치", "까마귀", "참새", "제비", "갈매기",
+            "펠리컨", "홍학", "악어", "도마뱀", "카멜레온", "이구아나", "뱀", "구렁이", "개구리", "두꺼비",
+            "도룡뇽", "상어", "고래", "범고래", "물개", "바다표범", "바다코끼리", "매너티", "듀공", "가오리",
+            "오징어", "문어", "낙지", "쭈꾸미", "게", "가재", "새우", "랍스터", "조개", "소라",
+            "해파리", "불가사리", "성게", "해마", "금붕어", "잉어", "송어", "연어", "참치", "고등어",
+            "티라노", "트리케라", "벨로시", "브라키오", "용", "드래곤", "유니콘", "페가수스", "피닉스", "해태",
+            "사람", "외계인", "로봇", "안드로이드", "사이보그", "유령", "좀비", "스켈레톤", "슬라임", "고블린",
+            "오크", "엘프", "드워프", "천사", "악마", "신", "왕", "여왕", "왕자", "공주", "개발자"
+        ];
+
+        // Nickname Generators & Formatters
+        function generateRandomNick() {
+            const v = verbs[Math.floor(Math.random() * verbs.length)];
+            const a = adjectives[Math.floor(Math.random() * adjectives.length)];
+            const n = animals[Math.floor(Math.random() * animals.length)];
+            const tag = Math.floor(Math.random() * 9000) + 1000;
+            return `${v}_${a}_${n}_${tag}`;
+        }
+
+        function formatDisplayNick(nick) {
+            if (!nick) return "";
+            return nick.replace(/_/g, " ").replace(/#?(\d{4})$/, "#$1");
+        }
+
+        function getNickColor(nick) {
+            let hash = 0;
+            for (let i = 0; i < nick.length; i++) {
+                hash = nick.charCodeAt(i) + ((hash << 5) - hash);
+            }
+            const h = Math.abs(hash) % 360;
+            return `hsl(${h}, 65%, 45%)`;
+        }
+
+        // Authentication Handlers
+        window.handleKeyLogin = async () => {
+            const inputKey = document.getElementById('api-key-input').value.trim();
+            const inputNick = document.getElementById('nickname-input').value.trim();
+            const isAutoLogin = document.getElementById('auto-login-checkbox').checked;
+            const errorMsg = document.getElementById('error-msg');
+
+            if (!inputKey) {
+                errorMsg.innerText = "보안 키를 입력해주세요.";
+                return;
+            }
+
+            try {
+                const config = { ...baseConfig, apiKey: inputKey };
+                if (getApps().length > 0) {
+                    location.reload();
+                    return;
+                }
+                app = initializeApp(config);
+                auth = getAuth(app);
+                db = getDatabase(app);
+                await signInAnonymously(auth);
+                user = auth.currentUser;
+
+                localStorage.setItem('shoga_room_id', currentRoomId);
+
+                if (inputNick) {
+                    myNick = inputNick.replace(/\s/g, '_').replace(/#/g, '');
+                    localStorage.setItem('shoga_user_nick', inputNick);
+                } else {
+                    myNick = generateRandomNick();
+                }
+
+                if (isAutoLogin) {
+                    localStorage.setItem('shoga_api_key', inputKey);
+                    localStorage.setItem('shoga_auto_login', 'true');
+                } else {
+                    localStorage.removeItem('shoga_api_key');
+                    localStorage.removeItem('shoga_auto_login');
+                }
+
+                showChatScreen();
+            } catch (error) {
+                console.error(error);
+                let msg = "접속 실패: 올바르지 않은 키입니다.";
+                if (error.code === 'auth/operation-not-allowed') {
+                    msg = "서버 설정 오류: Firebase 콘솔에서 '익명 로그인'을 켜주세요.";
+                }
+                errorMsg.innerText = msg;
+            }
+        };
+
+        window.handleConsoleLogin = () => {
+            const inputKey = document.getElementById('api-key-input').value.trim();
+            const inputNick = document.getElementById('nickname-input').value.trim();
+            const errorMsg = document.getElementById('error-msg');
+
+            if (!inputKey) {
+                errorMsg.innerText = "보안 키를 입력해주세요.";
+                return;
+            }
+
+            let finalNick = inputNick;
+            if (finalNick) {
+                finalNick = finalNick.replace(/\s/g, '_').replace(/#/g, '');
+                localStorage.setItem('shoga_user_nick', inputNick);
+            } else {
+                finalNick = generateRandomNick();
+            }
+
+            localStorage.setItem('shoga_room_id', currentRoomId);
+
+            const url = `shogaConsole.html?apiKey=${encodeURIComponent(inputKey)}&nick=${encodeURIComponent(finalNick)}&roomId=${encodeURIComponent(currentRoomId)}`;
+            window.open(url, '_blank');
+        };
+
+        window.handleLogout = () => {
+            localStorage.removeItem('shoga_api_key');
+            localStorage.removeItem('shoga_auto_login');
+            if (auth) {
+                signOut(auth).then(() => {
+                    location.reload();
+                });
+            } else {
+                location.reload();
+            }
+        };
+
+        // Chat View Control Handlers
+        function showChatScreen() {
+            document.getElementById('login-screen').classList.add('hidden');
+            document.getElementById('chat-screen').classList.remove('hidden');
+            document.querySelector('.room-name').innerText = currentRoomId;
+            document.getElementById('my-nick-display').innerText = formatDisplayNick(myNick);
+            stopQrScan();
+
+            if ("Notification" in window && Notification.permission === "default") {
+                Notification.requestPermission();
+            }
+
+            if (!isChatLoaded) {
+                loadChat();
+                isChatLoaded = true;
+            }
+        }
+
+        function loadChat() {
+            const chatArea = document.getElementById('chat-area');
+            chatArea.innerHTML = `<div class="system-msg">인증 성공! 닉네임:[${formatDisplayNick(myNick)}]</div>`;
+            const chatRef = ref(db, 'chats/' + currentRoomId);
+            onChildAdded(chatRef, (snapshot) => {
+                const data = snapshot.val();
+                if (data) drawMessage(data);
+            });
+        }
+
+        function formatTime(timestamp) {
+            if (!timestamp) return '';
+            const date = new Date(timestamp);
+            let hours = date.getHours();
+            const minutes = date.getMinutes();
+            const ampm = hours >= 12 ? '오후' : '오전';
+            hours = hours % 12;
+            hours = hours ? hours : 12;
+            const strMinutes = minutes < 10 ? '0' + minutes : minutes;
+            return `${ampm} ${hours}:${strMinutes}`;
+        }
+
+        function drawMessage(data) {
+            const chatArea = document.getElementById('chat-area');
+            const alertBadge = document.getElementById('new-msg-alert');
+            const isMe = user && (data.uid === user.uid);
+            const isLina = data.nick === '리나';
+            const isLia = data.nick === '리아';
+
+            const threshold = 50;
+            const wasAtBottom = chatArea.scrollHeight - chatArea.scrollTop - chatArea.clientHeight <= threshold;
+
+            const row = document.createElement('div');
+            row.className = `msg-row ${isMe ? 'me' : 'other'} ${isLina ? 'lina-msg' : ''} ${isLia ? 'lia-msg' : ''}`;
+
+            const timeStr = data.time ? formatTime(data.time) : '';
+            const nickColor = getNickColor(data.nick);
+
+            let html = '';
+            if (!isMe) {
+                html += `<span class="sender-name" style="color: ${nickColor}">
+                            ${escapeHtml(formatDisplayNick(data.nick))}
+                            ${(isLina || isLia) ? '<span class="badge-ai">AI</span>' : ''}
+                         </span>`;
+            }
+
+            html += `<div class="bubble-container">`;
+            html += `  <div class="bubble">${escapeHtml(data.text)}</div>`;
+            html += `  <span class="msg-time">${timeStr}</span>`;
+            html += `</div>`;
+
+            row.innerHTML = html;
+            chatArea.appendChild(row);
+
+            if (isInitialLoad) {
+                chatArea.scrollTop = chatArea.scrollHeight;
+                return;
+            }
+
+            if (isMe || wasAtBottom) {
+                chatArea.scrollTop = chatArea.scrollHeight;
+                alertBadge.classList.remove('show');
+            } else {
+                alertBadge.classList.add('show');
+            }
+
+            if (!isMe && "Notification" in window && Notification.permission === "granted" && document.hidden) {
+                const notification = new Notification(formatDisplayNick(data.nick), {
+                    body: data.text
+                });
+                notification.onclick = () => {
+                    window.focus();
+                    notification.close();
+                };
+            }
+        }
+
+        setTimeout(() => {
+            isInitialLoad = false;
+        }, 2000);
+
+        window.sendMessage = () => {
+            const input = document.getElementById('msg-input');
+            const text = input.value.trim();
+            if (!text || !user) return;
+            const chatRef = ref(db, 'chats/' + currentRoomId);
+            push(chatRef, {
+                uid: user.uid,
+                nick: myNick,
+                text: text,
+                time: serverTimestamp()
+            }).then(() => {
+                input.value = '';
+            }).catch(() => alert("전송 실패"));
+        };
+
+        function escapeHtml(text) {
+            if (!text) return "";
+            return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        }
+
+        document.getElementById('api-key-input').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') window.handleKeyLogin();
+        });
+
+        document.getElementById('nickname-input').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') document.getElementById('api-key-input').focus();
+        });
+
+    </script>
+
+    <script>
+        // QR Scanner Module
+        let html5QrcodeScanner = null;
+
+        function startQrScan() {
+            const readerDiv = document.getElementById('reader');
+            const stopBtn = document.getElementById('btn-stop-scan');
+            readerDiv.style.display = "block";
+            stopBtn.style.display = "inline-block";
+            html5QrcodeScanner = new Html5Qrcode("reader");
+            const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+
+            html5QrcodeScanner.start({ facingMode: "environment" }, config, onScanSuccess)
+                .catch(err => {
+                    alert("카메라를 시작할 수 없습니다.");
+                    stopQrScan();
+                });
+        }
+
+        function scanFromFile(input) {
+            if (input.files.length === 0) return;
+            const file = input.files[0];
+
+            const img = new Image();
+            const url = URL.createObjectURL(file);
+
+            img.onload = () => {
+                URL.revokeObjectURL(url);
+
+                const canvas = document.createElement('canvas');
+                const padding = 40;
+
+                canvas.width = img.width + padding * 2;
+                canvas.height = img.height + padding * 2;
+
+                const ctx = canvas.getContext('2d');
+                ctx.imageSmoothingEnabled = false;
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.drawImage(img, padding, padding, img.width, img.height);
+
+                canvas.toBlob((blob) => {
+                    if (!blob) {
+                        alert("이미지 처리 중 오류가 발생했습니다.");
+                        input.value = '';
+                        return;
+                    }
+
+                    const paddedFile = new File([blob], "padded_qr.png", { type: "image/png" });
+                    const html5QrCode = new Html5Qrcode("reader");
+
+                    html5QrCode.scanFile(paddedFile, true)
+                        .then(onScanSuccess)
+                        .catch(err => {
+                            alert("QR 코드를 찾을 수 없습니다.");
+                            input.value = '';
+                        });
+                }, 'image/png');
+            };
+            img.src = url;
+        }
+
+        function onScanSuccess(decodedText) {
+            const keyInput = document.getElementById('api-key-input');
+            keyInput.value = decodedText;
+            stopQrScan();
+            keyInput.focus();
+        }
+
+        function stopQrScan() {
+            if (html5QrcodeScanner) {
+                html5QrcodeScanner.stop().then(() => {
+                    html5QrcodeScanner.clear();
+                    html5QrcodeScanner = null;
+                }).catch(err => console.log(err));
+            }
+            document.getElementById('reader').style.display = "none";
+            document.getElementById('btn-stop-scan').style.display = "none";
+        }
+    </script>
+</body>
+
+</html>
