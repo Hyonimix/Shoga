@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Shoga's Test Room</title>
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    <style>
+        /* CSS Reset & Style */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", sans-serif;
+        }
+
+        body {
+            background-color: #f0f2f5;
+            height: 100vh;
+            height: 100dvh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            color: #333;
+        }
+
+        .app-container {
+            width: 100%;
+            height: 100%;
+            background: #fff;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        @media (min-width: 500px) {
+            .app-container {
+                max-width: 400px;
+                height: 90vh;
+                border-radius: 24px;
+                border: 1px solid #e0e0e0;
+            }
+        }
+
+        /* 화면 공통 */
+        .screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            background: white;
+            z-index: 10;
+            transition: opacity 0.3s ease;
+        }
+
+        .hidden {
+            display: none !important;
+            opacity: 0;
+        }
+
+        /* 1. 로그인(키 입력) 화면 */
+        #login-screen {
+            z-index: 20;
+            justify-content: center;
+            align-items: center;
+            padding: 40px;
+            background: linear-gradient(135deg, #2c3e50 0%, #4ca1af 100%);
+            overflow-y: auto;
+        }
+
+        .login-box {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 30px 20px;
+            border-radius: 20px;
+            width: 100%;
+            text-align: center;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .app-title {
+            font-size: 24px;
+            font-weight: 800;
+            color: #333;
+            margin-bottom: 4px;
+        }
+
+        .app-desc {
+            font-size: 13px;
+            color: #666;
+            margin-bottom: 14px;
+        }
+
+        /* 입력 필드 스타일 */
+        .key-input {
+            width: 100%;
+            padding: 14px;
+            border: 2px solid #ddd;
+            border-radius: 12px;
+            font-size: 14px;
+            outline: none;
+            transition: 0.2s;
+            background: #f9f9f9;
+        }
+
+        .key-input:focus {
+            border-color: #4ca1af;
+            background: #fff;
+        }
+
+        .btn-enter {
+            width: 100%;
+            background: #2c3e50;
+            color: #fff;
+            border: none;
+            border-radius: 12px;
+            padding: 14px;
+            font-size: 15px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.2s;
+            margin-top: 5px;
+        }
+
+        .btn-enter:hover {
+            background: #34495e;
+            transform: translateY(-1px);
+        }
+        
+        .btn-enter:active {
+            transform: scale(0.98);
+        }
+
+        /* QR 관련 스타일 */
+        .qr-divider {
+            display: flex;
+            align-items: center;
+            font-size: 12px;
+            color: #888;
+            margin: 10px 0;
+        }
+        .qr-divider::before, .qr-divider::after {
+            content: "";
+            flex: 1;
+            height: 1px;
+            background: #ddd;
+            margin: 0 10px;
+        }
+
+        .qr-btn-group {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-qr {
+            flex: 1;
+            background: #fff;
+            border: 1px solid #ddd;
+            color: #555;
+            padding: 10px;
+            border-radius: 12px;
+            font-size: 13px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+            transition: 0.2s;
+        }
+
+        #reader {
+            width: 100%;
+            border-radius: 12px;
+            overflow: hidden;
+            margin-top: 10px;
+            display: none;
+        }
+        
+        #reader video {
+            object-fit: cover;
+            border-radius: 12px;
+        }
+
+        .btn-stop-scan {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            margin-top: 10px;
+            cursor: pointer;
+            display: none;
+        }
+
+        /* 2. 채팅 화면 */
+        #chat-screen {
+            z-index: 10;
+            background: #bacee0;
+        }
+
+        .chat-header {
+            height: 56px;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 16px;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+        }
+
+        .header-info {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .room-name {
+            font-weight: bold;
+            font-size: 16px;
+            color: #2c3e50;
+        }
+
+        .my-nick {
+            font-size: 11px;
+            color: #1a73e8;
+        }
+
+        .btn-logout {
+            font-size: 12px;
+            color: #5f6368;
+            border: 1px solid #dadce0;
+            background: transparent;
+            padding: 6px 12px;
+            border-radius: 16px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .chat-area {
+            flex: 1;
+            overflow-y: auto;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            scroll-behavior: smooth;
+        }
+
+        .msg-row {
+            display: flex;
+            flex-direction: column;
+            max-width: 75%;
+            position: relative;
+        }
+
+        .msg-row.me {
+            align-self: flex-end;
+            align-items: flex-end;
+        }
+
+        .msg-row.other {
+            align-self: flex-start;
+            align-items: flex-start;
+        }
+
+        .sender-name {
+            font-size: 11px;
+            color: #666;
+            margin-bottom: 4px;
+            margin-left: 4px;
+        }
+
+        .bubble {
+            padding: 10px 14px;
+            border-radius: 18px;
+            font-size: 15px;
+            line-height: 1.5;
+            word-break: break-all;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+        }
+
+        .msg-row.me .bubble {
+            background: #fef01b;
+            color: #3b1e1e;
+            border-top-right-radius: 4px;
+        }
+
+        .msg-row.other .bubble {
+            background: #fff;
+            color: #2c3e50;
+            border-top-left-radius: 4px;
+        }
+
+        .system-msg {
+            align-self: center;
+            background: rgba(0, 0, 0, 0.1);
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 11px;
+            color: #555;
+            margin: 10px 0;
+        }
+
+        .input-area {
+            background: #fff;
+            padding: 12px;
+            display: flex;
+            gap: 8px;
+            border-top: 1px solid #f0f0f0;
+        }
+
+        #msg-input {
+            flex: 1;
+            padding: 12px 16px;
+            border: 1px solid #eee;
+            border-radius: 24px;
+            outline: none;
+            background: #f8f9fa;
+            font-size: 15px;
+        }
+
+        #send-btn {
+            background: #fef01b;
+            border: none;
+            width: 46px;
+            height: 46px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: #3b1e1e;
+            font-size: 18px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="app-container">
+        <div id="login-screen" class="screen">
+            <div class="login-box">
+                <div class="app-title">🔒 Shoga's Test Room</div>
+                <div class="app-desc">초대받은 분만 입장할 수 있습니다.</div>
+                
+                <input type="text" id="nickname-input" class="key-input" placeholder="닉네임 (미입력 시 랜덤)" maxlength="20" style="margin-bottom: 8px;">
+                
+                <input type="password" id="api-key-input" class="key-input" placeholder="보안 키를 입력하세요">
+                <button class="btn-enter" onclick="handleKeyLogin()">입장하기</button>
+                
+                <div class="qr-divider">또는 QR 코드로 입력</div>
+                <div class="qr-btn-group">
+                    <button class="btn-qr" onclick="startQrScan()">📷 카메라</button>
+                    <button class="btn-qr" onclick="document.getElementById('qr-input-file').click()">🖼️ 앨범</button>
+                </div>
+                
+                <div id="reader"></div>
+                <button id="btn-stop-scan" class="btn-stop-scan" onclick="stopQrScan()">스캔 취소</button>
+                
+                <input type="file" id="qr-input-file" accept="image/*" hidden onchange="scanFromFile(this)">
+                <p id="error-msg" style="color: #e74c3c; font-size: 12px; margin-top: 10px;"></p>
+            </div>
+        </div>
+
+        <div id="chat-screen" class="screen hidden">
+            <div class="chat-header">
+                <div class="header-info">
+                    <span class="room-name">Laboratory</span>
+                    <span class="my-nick" id="my-nick-display">...</span>
+                </div>
+                <button class="btn-logout" onclick="handleLogout()">나가기</button>
+            </div>
+            <div id="chat-area" class="chat-area"></div>
+            <div class="input-area">
+                <input type="text" id="msg-input" placeholder="메시지를 입력하세요"
+                    onkeypress="if(event.key==='Enter') sendMessage()">
+                <button id="send-btn" onclick="sendMessage()">➤</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getDatabase, ref, push, onChildAdded, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+        import { getAuth, signInAnonymously, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+
+        const baseConfig = {
+            authDomain: "shoga-intermediary.firebaseapp.com",
+            projectId: "shoga-intermediary",
+            storageBucket: "shoga-intermediary.firebasestorage.app",
+            messagingSenderId: "696629323825",
+            appId: "1:696629323825:web:fede1b0d1dd1695afccd10",
+            measurementId: "G-E4L52Z0HRE"
+        };
+
+        const GLOBAL_ROOM_ID = "Laboratory";
+        let app, db, auth, user;
+        let myNick = "";
+        let isChatLoaded = false;
+
+        // 페이지 로드 시 로컬스토리지에서 닉네임 불러오기
+        window.addEventListener('DOMContentLoaded', () => {
+            const savedNick = localStorage.getItem('shoga_user_nick');
+            if (savedNick) {
+                document.getElementById('nickname-input').value = savedNick;
+            }
+        });
+
+        // 닉네임 생성기
+        const verbs = ["춤추는", "날아다니는", "코딩하는", "노래하는", "잠자는", "라면먹는", "달리는", "멍때리는", "수영하는", "책읽는", "게임하는", "청소하는", "요리하는", "여행하는", "꿈꾸는", "기도하는", "운동하는", "산책하는", "운전하는", "공부하는", "비트타는", "그림그리는", "소리지르는", "속삭이는", "숨어있는"];
+        const adjectives = ["행복한", "슬픈", "배고픈", "시크한", "소심한", "용감한", "똑똑한", "수상한", "귀여운", "무서운", "화려한", "투명한", "강력한", "게으른", "부지런한", "조용한", "시끄러운", "우아한", "엉뚱한", "섹시한", "진지한", "유쾌한", "냉정한", "따뜻한", "친절한"];
+        const animals = ["호랑이", "사자", "토끼", "다람쥐", "펭귄", "고양이", "강아지", "쿼카", "알파카", "오리", "독수리", "거북이", "판다", "너구리", "여우", "곰돌이", "돌고래", "부엉이", "기린", "코끼리", "햄스터", "앵무새", "수달", "하마", "미어캣"];
+
+        function generateRandomNick() {
+            const v = verbs[Math.floor(Math.random() * verbs.length)];
+            const a = adjectives[Math.floor(Math.random() * adjectives.length)];
+            const n = animals[Math.floor(Math.random() * animals.length)];
+            return `${v} ${a} ${n}`;
+        }
+
+        // 로그인 로직
+        window.handleKeyLogin = async () => {
+            const inputKey = document.getElementById('api-key-input').value.trim();
+            const inputNick = document.getElementById('nickname-input').value.trim();
+            const errorMsg = document.getElementById('error-msg');
+            
+            if (!inputKey) {
+                errorMsg.innerText = "보안 키를 입력해주세요.";
+                return;
+            }
+
+            try {
+                const config = { ...baseConfig, apiKey: inputKey };
+                if (getApps().length > 0) {
+                    location.reload(); 
+                    return;
+                }
+
+                app = initializeApp(config);
+                auth = getAuth(app);
+                db = getDatabase(app);
+
+                await signInAnonymously(auth);
+                user = auth.currentUser;
+
+                // 닉네임 설정
+                if (inputNick) {
+                    myNick = inputNick;
+                    localStorage.setItem('shoga_user_nick', inputNick); // 로컬스토리지 저장
+                } else {
+                    myNick = generateRandomNick();
+                }
+                
+                showChatScreen();
+
+            } catch (error) {
+                console.error(error);
+                let msg = "접속 실패: 올바르지 않은 키입니다.";
+                if (error.code === 'auth/operation-not-allowed') {
+                    msg = "서버 설정 오류: Firebase 콘솔에서 '익명 로그인'을 켜주세요.";
+                }
+                errorMsg.innerText = msg;
+            }
+        };
+
+        window.handleLogout = () => {
+            if (auth) {
+                signOut(auth).then(() => {
+                    location.reload();
+                });
+            } else {
+                location.reload();
+            }
+        };
+
+        function showChatScreen() {
+            document.getElementById('login-screen').classList.add('hidden');
+            document.getElementById('chat-screen').classList.remove('hidden');
+            document.getElementById('my-nick-display').innerText = myNick;
+            stopQrScan(); 
+
+            if (!isChatLoaded) {
+                loadChat();
+                isChatLoaded = true;
+            }
+        }
+
+        function loadChat() {
+            const chatArea = document.getElementById('chat-area');
+            chatArea.innerHTML = `<div class="system-msg">🔓 인증 성공! 닉네임: [${myNick}]</div>`;
+
+            const chatRef = ref(db, 'chats/' + GLOBAL_ROOM_ID);
+            onChildAdded(chatRef, (snapshot) => {
+                const data = snapshot.val();
+                if (data) drawMessage(data);
+            });
+        }
+
+        function drawMessage(data) {
+            const chatArea = document.getElementById('chat-area');
+            const isMe = user && (data.uid === user.uid);
+            const row = document.createElement('div');
+            row.className = `msg-row ${isMe ? 'me' : 'other'}`;
+
+            let html = '';
+            if (!isMe) {
+                html += `<span class="sender-name">${escapeHtml(data.nick)}</span>`;
+            }
+            html += `<div class="bubble">${escapeHtml(data.text)}</div>`;
+
+            row.innerHTML = html;
+            chatArea.appendChild(row);
+            chatArea.scrollTop = chatArea.scrollHeight;
+        }
+
+        window.sendMessage = () => {
+            const input = document.getElementById('msg-input');
+            const text = input.value.trim();
+            if (!text || !user) return;
+
+            const chatRef = ref(db, 'chats/' + GLOBAL_ROOM_ID);
+            push(chatRef, {
+                uid: user.uid,
+                nick: myNick,
+                text: text,
+                time: serverTimestamp()
+            }).then(() => {
+                input.value = '';
+                input.focus();
+            }).catch(() => alert("전송 실패"));
+        };
+
+        function escapeHtml(text) {
+            if (!text) return "";
+            return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        }
+
+        document.getElementById('api-key-input').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') window.handleKeyLogin();
+        });
+
+        // 닉네임 칸에서 엔터 치면 비밀번호 칸으로 이동
+        document.getElementById('nickname-input').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') document.getElementById('api-key-input').focus();
+        });
+
+    </script>
+
+    <script>
+        let html5QrcodeScanner = null;
+
+        function startQrScan() {
+            const readerDiv = document.getElementById('reader');
+            const stopBtn = document.getElementById('btn-stop-scan');
+            readerDiv.style.display = "block";
+            stopBtn.style.display = "inline-block";
+            html5QrcodeScanner = new Html5Qrcode("reader");
+            const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+            
+            html5QrcodeScanner.start({ facingMode: "environment" }, config, onScanSuccess)
+            .catch(err => {
+                alert("카메라를 시작할 수 없습니다.");
+                stopQrScan();
+            });
+        }
+
+        function scanFromFile(input) {
+            if (input.files.length === 0) return;
+            const imageFile = input.files[0];
+            const html5QrCode = new Html5Qrcode("reader");
+            html5QrCode.scanFile(imageFile, true)
+            .then(onScanSuccess)
+            .catch(err => {
+                alert("QR 코드를 찾을 수 없습니다.");
+                input.value = '';
+            });
+        }
+
+        function onScanSuccess(decodedText) {
+            const keyInput = document.getElementById('api-key-input');
+            keyInput.value = decodedText;
+            stopQrScan();
+            keyInput.focus();
+        }
+
+        function stopQrScan() {
+            if (html5QrcodeScanner) {
+                html5QrcodeScanner.stop().then(() => {
+                    html5QrcodeScanner.clear();
+                    html5QrcodeScanner = null;
+                }).catch(err => console.log(err));
+            }
+            document.getElementById('reader').style.display = "none";
+            document.getElementById('btn-stop-scan').style.display = "none";
+        }
+    </script>
+</body>
+</html>
