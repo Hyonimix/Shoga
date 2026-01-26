@@ -29,6 +29,12 @@
             --system-msg-text: #555;
             --login-bg: linear-gradient(135deg, #2c3e50 0%, #4ca1af 100%);
             --login-box-bg: rgba(255, 255, 255, 0.95);
+
+            /* AI Lina Styles - Light Mode (Enhanced Glow) */
+            --lina-bubble-bg: linear-gradient(145deg, #fdfcff 0%, #f3efff 100%);
+            --lina-bubble-text: #5b21b6;
+            --lina-bubble-border: rgba(124, 58, 237, 0.25);
+            --lina-shadow: 0 4px 15px rgba(139, 92, 246, 0.2), 0 0 15px rgba(139, 92, 246, 0.15);
         }
 
         @media (prefers-color-scheme: dark) {
@@ -40,12 +46,12 @@
                 --sub-text-color: #aaa;
                 --header-bg: rgba(30, 30, 30, 0.95);
                 --header-border: rgba(255, 255, 255, 0.1);
-                --chat-bg: #0f172a;
+                --chat-bg: #070b14;
                 --input-area-bg: #1e1e1e;
                 --input-bg: #2c2c2c;
                 --input-border: #444;
-                --my-msg-bg: #fdda00;
-                --my-msg-text: #2c2c2c;
+                --my-msg-bg: #9b7700;
+                --my-msg-text: #ffffff;
                 --other-msg-bg: #333;
                 --other-msg-text: #ddd;
                 --time-text: #888;
@@ -53,6 +59,12 @@
                 --system-msg-text: #bbb;
                 --login-bg: linear-gradient(135deg, #1a2a3a 0%, #2c3e50 100%);
                 --login-box-bg: rgba(30, 30, 30, 0.95);
+
+                /* AI Lina Styles - Dark Mode (Enhanced Glow & Depth) */
+                --lina-bubble-bg: linear-gradient(145deg, #2e1065 0%, #1e1b4b 100%);
+                --lina-bubble-text: #e9d5ff;
+                --lina-bubble-border: rgba(139, 92, 246, 0.5);
+                --lina-shadow: 0 8px 25px rgba(0, 0, 0, 0.6), 0 0 20px rgba(139, 92, 246, 0.35);
             }
         }
 
@@ -140,7 +152,6 @@
             font-size: 24px;
             font-weight: 800;
             color: #333;
-            /* 로그인 박스 내부는 항상 밝은 테마 유지하거나 변수처리 가능 */
             margin-bottom: 4px;
         }
 
@@ -156,7 +167,6 @@
             margin-bottom: 14px;
         }
 
-        /* 입력 필드 스타일 */
         .key-input {
             width: 100%;
             padding: 14px;
@@ -196,7 +206,6 @@
             transform: scale(0.98);
         }
 
-        /* QR 관련 스타일 */
         .qr-divider {
             display: flex;
             align-items: center;
@@ -313,7 +322,6 @@
             flex-direction: column;
             gap: 12px;
             scroll-behavior: auto;
-            /* JS에서 제어하기 위해 auto로 변경 */
         }
 
         .msg-row {
@@ -335,9 +343,17 @@
 
         .sender-name {
             font-size: 11px;
-            color: var(--sub-text-color);
+            font-weight: 800;
             margin-bottom: 4px;
             margin-left: 4px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            text-shadow:
+                -1px -1px 0 var(--app-bg),
+                1px -1px 0 var(--app-bg),
+                -1px 1px 0 var(--app-bg),
+                1px 1px 0 var(--app-bg);
         }
 
         .bubble-container {
@@ -369,6 +385,52 @@
             background: var(--other-msg-bg);
             color: var(--other-msg-text);
             border-top-left-radius: 4px;
+        }
+
+        /* AI 리나 전용 스타일 수정 (Enhanced Glow & Depth) */
+        .msg-row.lina-msg .bubble {
+            background: var(--lina-bubble-bg);
+            color: var(--lina-bubble-text);
+            border: 1px solid var(--lina-bubble-border);
+            box-shadow: var(--lina-shadow);
+            position: relative;
+            animation: lina-entry 0.6s ease-out;
+            overflow: hidden;
+        }
+
+        .msg-row.lina-msg .bubble::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: rgba(255, 255, 255, 0.4);
+            pointer-events: none;
+        }
+
+        .badge-ai {
+            background: #7c3aed;
+            color: #fff;
+            font-size: 8px;
+            padding: 1px 5px;
+            border-radius: 4px;
+            font-weight: 800;
+            text-shadow: none;
+            letter-spacing: 0.5px;
+            box-shadow: 0 1px 4px rgba(124, 58, 237, 0.3);
+        }
+
+        @keyframes lina-entry {
+            from {
+                opacity: 0;
+                transform: translateY(12px) scale(0.96);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
         }
 
         .msg-time {
@@ -423,12 +485,10 @@
             cursor: pointer;
             color: #3b1e1e;
             font-size: 18px;
-            /* 모바일 터치 시 하이라이트 제거 */
             -webkit-tap-highlight-color: transparent;
             user-select: none;
         }
 
-        /* 새 메시지 알림 배지 */
         #new-msg-alert {
             position: absolute;
             bottom: 80px;
@@ -496,7 +556,6 @@
 
             <div id="chat-area" class="chat-area"></div>
 
-            <!-- 새 메시지 알림 -->
             <div id="new-msg-alert" onclick="scrollToBottom()">
                 <span>⬇️ 새 메시지</span>
             </div>
@@ -504,7 +563,6 @@
             <div class="input-area">
                 <input type="text" id="msg-input" placeholder="메시지를 입력하세요"
                     onkeypress="if(event.key==='Enter') sendMessage()">
-                <!-- onclick을 제거하고 JS에서 이벤트를 바인딩합니다 -->
                 <button id="send-btn">➤</button>
             </div>
         </div>
@@ -528,55 +586,46 @@
         let app, db, auth, user;
         let myNick = "";
         let isChatLoaded = false;
-        let isInitialLoad = true; // 첫 로딩인지 확인
+        let isInitialLoad = true;
 
-        // 페이지 로드 시 로컬스토리지에서 닉네임 불러오기
         window.addEventListener('DOMContentLoaded', () => {
             const savedNick = localStorage.getItem('shoga_user_nick');
             if (savedNick) {
                 document.getElementById('nickname-input').value = savedNick;
             }
-            setupSendButton(); // 전송 버튼 이벤트 설정
-            setupScrollListener(); // 스크롤 이벤트 설정
+            setupSendButton();
+            setupScrollListener();
         });
 
-        // 전송 버튼 포커스 방지 설정 (모바일 키보드 버그 해결 핵심)
         function setupSendButton() {
             const btn = document.getElementById('send-btn');
             const handleSend = (e) => {
-                // 이 이벤트가 발생했을 때 기본 동작(포커스 이동)을 막습니다.
                 e.preventDefault();
                 sendMessage();
             };
-
-            // 터치 및 마우스 이벤트 모두 처리
             btn.addEventListener('mousedown', handleSend);
             btn.addEventListener('touchstart', handleSend);
         }
 
-        // 스크롤 감지 및 새 메시지 알림 숨김 처리
         function setupScrollListener() {
             const chatArea = document.getElementById('chat-area');
             const alertBadge = document.getElementById('new-msg-alert');
 
             chatArea.addEventListener('scroll', () => {
-                const threshold = 50; // 여유값
+                const threshold = 50;
                 const isBottom = chatArea.scrollHeight - chatArea.scrollTop - chatArea.clientHeight <= threshold;
-
                 if (isBottom) {
                     alertBadge.classList.remove('show');
                 }
             });
         }
 
-        // 하단으로 스크롤 이동 함수
         window.scrollToBottom = () => {
             const chatArea = document.getElementById('chat-area');
             chatArea.scrollTop = chatArea.scrollHeight;
             document.getElementById('new-msg-alert').classList.remove('show');
         };
 
-        // 닉네임 생성기 (대폭 확장된 목록)
         const verbs = [
             "춤추는", "날아다니는", "코딩하는", "노래하는", "잠자는", "라면먹는", "달리는", "멍때리는", "수영하는", "책읽는",
             "게임하는", "청소하는", "요리하는", "여행하는", "꿈꾸는", "기도하는", "운동하는", "산책하는", "운전하는", "공부하는",
@@ -591,7 +640,7 @@
             "장기두는", "오목두는", "고스톱치는", "포커치는", "마술하는", "연기하는", "노래부르는", "랩하는", "디제잉하는", "드럼치는",
             "기타치는", "피아노치는", "바이올린켜는", "플룻부는", "트럼펫부는", "지휘하는", "박수치는", "응원하는", "구경하는", "촬영하는",
             "녹음하는", "방송하는", "스트리밍하는", "채굴하는", "투자하는", "저축하는", "소비하는", "기부하는", "봉사하는", "치료하는", "개발하는"
-        ]; // 약 130개
+        ];
 
         const adjectives = [
             "행복한", "슬픈", "배고픈", "시크한", "소심한", "용감한", "똑똑한", "수상한", "귀여운", "무서운",
@@ -607,7 +656,7 @@
             "전설의", "환상의", "최고의", "최악의", "무적의", "유일한", "흔한", "희귀한", "멸종위기", "살아남은",
             "죽지않는", "영원한", "일시적인", "가짜", "진짜", "원조", "짝퉁", "국산", "수입", "외계",
             "지옥에서온", "천국에서온", "미래에서온", "과거에서온", "이세계", "저세상", "킹받는", "야무진", "엄청난", "대단한"
-        ]; // 약 130개
+        ];
 
         const animals = [
             "호랑이", "사자", "토끼", "다람쥐", "펭귄", "고양이", "강아지", "쿼카", "알파카", "오리",
@@ -623,21 +672,34 @@
             "티라노", "트리케라", "벨로시", "브라키오", "용", "드래곤", "유니콘", "페가수스", "피닉스", "해태",
             "사람", "외계인", "로봇", "안드로이드", "사이보그", "유령", "좀비", "스켈레톤", "슬라임", "고블린",
             "오크", "엘프", "드워프", "천사", "악마", "신", "왕", "여왕", "왕자", "공주", "개발자"
-        ]; // 약 130개
+        ];
 
+        // 닉네임 생성 로직 (공백을 언더바로 변경, # 제거)
         function generateRandomNick() {
             const v = verbs[Math.floor(Math.random() * verbs.length)];
             const a = adjectives[Math.floor(Math.random() * adjectives.length)];
             const n = animals[Math.floor(Math.random() * animals.length)];
-
-            // 4자리 랜덤 숫자 (1000 ~ 9999)
-            // 총 조합 수 = (130 * 130 * 130) * 9000 = 약 200억 개
             const tag = Math.floor(Math.random() * 9000) + 1000;
-
-            return `${v} ${a} ${n} #${tag}`;
+            return `${v}_${a}_${n}_${tag}`;
         }
 
-        // 로그인 로직
+        // 클라이언트에서 닉네임 표시용 포맷터 (개선됨)
+        function formatDisplayNick(nick) {
+            if (!nick) return "";
+            // 언더바를 공백으로 치환하고, 
+            // 마지막 4자리 숫자 앞에 '#'이 없으면 붙여줌 (이미 있으면 중복 방지)
+            return nick.replace(/_/g, " ").replace(/#?(\d{4})$/, "#$1");
+        }
+
+        function getNickColor(nick) {
+            let hash = 0;
+            for (let i = 0; i < nick.length; i++) {
+                hash = nick.charCodeAt(i) + ((hash << 5) - hash);
+            }
+            const h = Math.abs(hash) % 360;
+            return `hsl(${h}, 65%, 45%)`;
+        }
+
         window.handleKeyLogin = async () => {
             const inputKey = document.getElementById('api-key-input').value.trim();
             const inputNick = document.getElementById('nickname-input').value.trim();
@@ -654,24 +716,20 @@
                     location.reload();
                     return;
                 }
-
                 app = initializeApp(config);
                 auth = getAuth(app);
                 db = getDatabase(app);
-
                 await signInAnonymously(auth);
                 user = auth.currentUser;
 
-                // 닉네임 설정
                 if (inputNick) {
-                    myNick = inputNick;
+                    // 수동 입력 시에도 Firebase 금지 문자 처리
+                    myNick = inputNick.replace(/\s/g, '_').replace(/#/g, '');
                     localStorage.setItem('shoga_user_nick', inputNick);
                 } else {
                     myNick = generateRandomNick();
                 }
-
                 showChatScreen();
-
             } catch (error) {
                 console.error(error);
                 let msg = "접속 실패: 올바르지 않은 키입니다.";
@@ -695,9 +753,8 @@
         function showChatScreen() {
             document.getElementById('login-screen').classList.add('hidden');
             document.getElementById('chat-screen').classList.remove('hidden');
-            document.getElementById('my-nick-display').innerText = myNick;
+            document.getElementById('my-nick-display').innerText = formatDisplayNick(myNick);
             stopQrScan();
-
             if (!isChatLoaded) {
                 loadChat();
                 isChatLoaded = true;
@@ -706,8 +763,7 @@
 
         function loadChat() {
             const chatArea = document.getElementById('chat-area');
-            chatArea.innerHTML = `<div class="system-msg">🔓 인증 성공! 닉네임: [${myNick}]</div>`;
-
+            chatArea.innerHTML = `<div class="system-msg">🔓 인증 성공! 닉네임: [${formatDisplayNick(myNick)}]</div>`;
             const chatRef = ref(db, 'chats/' + GLOBAL_ROOM_ID);
             onChildAdded(chatRef, (snapshot) => {
                 const data = snapshot.val();
@@ -715,7 +771,6 @@
             });
         }
 
-        // 시간 포맷 함수
         function formatTime(timestamp) {
             if (!timestamp) return '';
             const date = new Date(timestamp);
@@ -723,7 +778,7 @@
             const minutes = date.getMinutes();
             const ampm = hours >= 12 ? '오후' : '오전';
             hours = hours % 12;
-            hours = hours ? hours : 12; // 0시는 12시로 표시
+            hours = hours ? hours : 12;
             const strMinutes = minutes < 10 ? '0' + minutes : minutes;
             return `${ampm} ${hours}:${strMinutes}`;
         }
@@ -732,22 +787,25 @@
             const chatArea = document.getElementById('chat-area');
             const alertBadge = document.getElementById('new-msg-alert');
             const isMe = user && (data.uid === user.uid);
+            const isLina = data.nick === '리나';
 
-            // 현재 스크롤이 바닥에 있는지 확인 (새 메시지 그리기 전 체크)
             const threshold = 50;
             const wasAtBottom = chatArea.scrollHeight - chatArea.scrollTop - chatArea.clientHeight <= threshold;
 
             const row = document.createElement('div');
-            row.className = `msg-row ${isMe ? 'me' : 'other'}`;
+            row.className = `msg-row ${isMe ? 'me' : 'other'} ${isLina ? 'lina-msg' : ''}`;
 
             const timeStr = data.time ? formatTime(data.time) : '';
+            const nickColor = getNickColor(data.nick);
 
             let html = '';
             if (!isMe) {
-                html += `<span class="sender-name">${escapeHtml(data.nick)}</span>`;
+                html += `<span class="sender-name" style="color: ${nickColor}">
+                            ${escapeHtml(formatDisplayNick(data.nick))}
+                            ${isLina ? '<span class="badge-ai">AI</span>' : ''}
+                         </span>`;
             }
 
-            // 버블과 시간을 감싸는 컨테이너
             html += `<div class="bubble-container">`;
             html += `  <div class="bubble">${escapeHtml(data.text)}</div>`;
             html += `  <span class="msg-time">${timeStr}</span>`;
@@ -765,12 +823,10 @@
                 chatArea.scrollTop = chatArea.scrollHeight;
                 alertBadge.classList.remove('show');
             } else {
-                // 스크롤이 위에 가 있을 때 새 메시지 도착
                 alertBadge.classList.add('show');
             }
         }
 
-        // 초기 로딩 상태 해제
         setTimeout(() => {
             isInitialLoad = false;
         }, 2000);
@@ -779,7 +835,6 @@
             const input = document.getElementById('msg-input');
             const text = input.value.trim();
             if (!text || !user) return;
-
             const chatRef = ref(db, 'chats/' + GLOBAL_ROOM_ID);
             push(chatRef, {
                 uid: user.uid,
