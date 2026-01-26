@@ -8,28 +8,77 @@
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
     <style>
         /* CSS Reset & Style */
+        :root {
+            /* Light Mode Variables */
+            --bg-color: #f0f2f5;
+            --app-bg: #fff;
+            --text-color: #333;
+            --sub-text-color: #666;
+            --header-bg: rgba(255, 255, 255, 0.95);
+            --header-border: rgba(0, 0, 0, 0.05);
+            --chat-bg: #bacee0;
+            --input-area-bg: #fff;
+            --input-bg: #f8f9fa;
+            --input-border: #eee;
+            --my-msg-bg: #fef01b;
+            --my-msg-text: #3b1e1e;
+            --other-msg-bg: #fff;
+            --other-msg-text: #2c3e50;
+            --time-text: #555;
+            --system-msg-bg: rgba(0, 0, 0, 0.1);
+            --system-msg-text: #555;
+            --login-bg: linear-gradient(135deg, #2c3e50 0%, #4ca1af 100%);
+            --login-box-bg: rgba(255, 255, 255, 0.95);
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                /* Dark Mode Variables */
+                --bg-color: #121212;
+                --app-bg: #1e1e1e;
+                --text-color: #e0e0e0;
+                --sub-text-color: #aaa;
+                --header-bg: rgba(30, 30, 30, 0.95);
+                --header-border: rgba(255, 255, 255, 0.1);
+                --chat-bg: #0f172a;
+                --input-area-bg: #1e1e1e;
+                --input-bg: #2c2c2c;
+                --input-border: #444;
+                --my-msg-bg: #fdda00;
+                --my-msg-text: #2c2c2c;
+                --other-msg-bg: #333;
+                --other-msg-text: #ddd;
+                --time-text: #888;
+                --system-msg-bg: rgba(255, 255, 255, 0.1);
+                --system-msg-text: #bbb;
+                --login-bg: linear-gradient(135deg, #1a2a3a 0%, #2c3e50 100%);
+                --login-box-bg: rgba(30, 30, 30, 0.95);
+            }
+        }
+
         * {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
             font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", sans-serif;
+            -webkit-tap-highlight-color: transparent;
         }
 
         body {
-            background-color: #f0f2f5;
+            background-color: var(--bg-color);
             height: 100vh;
             height: 100dvh;
             display: flex;
             justify-content: center;
             align-items: center;
             overflow: hidden;
-            color: #333;
+            color: var(--text-color);
         }
 
         .app-container {
             width: 100%;
             height: 100%;
-            background: #fff;
+            background: var(--app-bg);
             position: relative;
             display: flex;
             flex-direction: column;
@@ -55,7 +104,7 @@
             height: 100%;
             display: flex;
             flex-direction: column;
-            background: white;
+            background: var(--app-bg);
             z-index: 10;
             transition: opacity 0.3s ease;
         }
@@ -71,17 +120,17 @@
             justify-content: center;
             align-items: center;
             padding: 40px;
-            background: linear-gradient(135deg, #2c3e50 0%, #4ca1af 100%);
+            background: var(--login-bg);
             overflow-y: auto;
         }
 
         .login-box {
-            background: rgba(255, 255, 255, 0.95);
+            background: var(--login-box-bg);
             padding: 30px 20px;
             border-radius: 20px;
             width: 100%;
             text-align: center;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
             display: flex;
             flex-direction: column;
             gap: 10px;
@@ -91,12 +140,19 @@
             font-size: 24px;
             font-weight: 800;
             color: #333;
+            /* 로그인 박스 내부는 항상 밝은 테마 유지하거나 변수처리 가능 */
             margin-bottom: 4px;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            .app-title {
+                color: #fff;
+            }
         }
 
         .app-desc {
             font-size: 13px;
-            color: #666;
+            color: var(--sub-text-color);
             margin-bottom: 14px;
         }
 
@@ -104,17 +160,17 @@
         .key-input {
             width: 100%;
             padding: 14px;
-            border: 2px solid #ddd;
+            border: 2px solid var(--input-border);
             border-radius: 12px;
             font-size: 14px;
             outline: none;
             transition: 0.2s;
-            background: #f9f9f9;
+            background: var(--input-bg);
+            color: var(--text-color);
         }
 
         .key-input:focus {
             border-color: #4ca1af;
-            background: #fff;
         }
 
         .btn-enter {
@@ -135,7 +191,7 @@
             background: #34495e;
             transform: translateY(-1px);
         }
-        
+
         .btn-enter:active {
             transform: scale(0.98);
         }
@@ -148,7 +204,9 @@
             color: #888;
             margin: 10px 0;
         }
-        .qr-divider::before, .qr-divider::after {
+
+        .qr-divider::before,
+        .qr-divider::after {
             content: "";
             flex: 1;
             height: 1px;
@@ -163,9 +221,9 @@
 
         .btn-qr {
             flex: 1;
-            background: #fff;
-            border: 1px solid #ddd;
-            color: #555;
+            background: var(--input-bg);
+            border: 1px solid var(--input-border);
+            color: var(--text-color);
             padding: 10px;
             border-radius: 12px;
             font-size: 13px;
@@ -184,7 +242,7 @@
             margin-top: 10px;
             display: none;
         }
-        
+
         #reader video {
             object-fit: cover;
             border-radius: 12px;
@@ -205,18 +263,19 @@
         /* 2. 채팅 화면 */
         #chat-screen {
             z-index: 10;
-            background: #bacee0;
+            background: var(--chat-bg);
         }
 
         .chat-header {
             height: 56px;
-            background: rgba(255, 255, 255, 0.95);
+            background: var(--header-bg);
             backdrop-filter: blur(10px);
             display: flex;
             align-items: center;
             justify-content: space-between;
             padding: 0 16px;
-            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+            border-bottom: 1px solid var(--header-border);
+            color: var(--text-color);
         }
 
         .header-info {
@@ -227,7 +286,7 @@
         .room-name {
             font-weight: bold;
             font-size: 16px;
-            color: #2c3e50;
+            color: var(--text-color);
         }
 
         .my-nick {
@@ -237,8 +296,8 @@
 
         .btn-logout {
             font-size: 12px;
-            color: #5f6368;
-            border: 1px solid #dadce0;
+            color: var(--sub-text-color);
+            border: 1px solid var(--input-border);
             background: transparent;
             padding: 6px 12px;
             border-radius: 16px;
@@ -253,7 +312,8 @@
             display: flex;
             flex-direction: column;
             gap: 12px;
-            scroll-behavior: smooth;
+            scroll-behavior: auto;
+            /* JS에서 제어하기 위해 auto로 변경 */
         }
 
         .msg-row {
@@ -275,9 +335,19 @@
 
         .sender-name {
             font-size: 11px;
-            color: #666;
+            color: var(--sub-text-color);
             margin-bottom: 4px;
             margin-left: 4px;
+        }
+
+        .bubble-container {
+            display: flex;
+            align-items: flex-end;
+            gap: 4px;
+        }
+
+        .msg-row.me .bubble-container {
+            flex-direction: row-reverse;
         }
 
         .bubble {
@@ -290,42 +360,54 @@
         }
 
         .msg-row.me .bubble {
-            background: #fef01b;
-            color: #3b1e1e;
+            background: var(--my-msg-bg);
+            color: var(--my-msg-text);
             border-top-right-radius: 4px;
         }
 
         .msg-row.other .bubble {
-            background: #fff;
-            color: #2c3e50;
+            background: var(--other-msg-bg);
+            color: var(--other-msg-text);
             border-top-left-radius: 4px;
+        }
+
+        .msg-time {
+            font-size: 10px;
+            color: var(--time-text);
+            min-width: 50px;
+            margin-bottom: 2px;
+        }
+
+        .msg-row.me .msg-time {
+            text-align: right;
         }
 
         .system-msg {
             align-self: center;
-            background: rgba(0, 0, 0, 0.1);
+            background: var(--system-msg-bg);
             padding: 4px 12px;
             border-radius: 12px;
             font-size: 11px;
-            color: #555;
+            color: var(--system-msg-text);
             margin: 10px 0;
         }
 
         .input-area {
-            background: #fff;
+            background: var(--input-area-bg);
             padding: 12px;
             display: flex;
             gap: 8px;
-            border-top: 1px solid #f0f0f0;
+            border-top: 1px solid var(--header-border);
         }
 
         #msg-input {
             flex: 1;
             padding: 12px 16px;
-            border: 1px solid #eee;
+            border: 1px solid var(--input-border);
             border-radius: 24px;
             outline: none;
-            background: #f8f9fa;
+            background: var(--input-bg);
+            color: var(--text-color);
             font-size: 15px;
         }
 
@@ -341,6 +423,36 @@
             cursor: pointer;
             color: #3b1e1e;
             font-size: 18px;
+            /* 모바일 터치 시 하이라이트 제거 */
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+        }
+
+        /* 새 메시지 알림 배지 */
+        #new-msg-alert {
+            position: absolute;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 13px;
+            cursor: pointer;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+            z-index: 50;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s;
+        }
+
+        #new-msg-alert.show {
+            opacity: 1;
+            pointer-events: auto;
         }
     </style>
 </head>
@@ -352,21 +464,22 @@
             <div class="login-box">
                 <div class="app-title">🔒 Shoga's Test Room</div>
                 <div class="app-desc">초대받은 분만 입장할 수 있습니다.</div>
-                
-                <input type="text" id="nickname-input" class="key-input" placeholder="닉네임 (미입력 시 랜덤)" maxlength="20" style="margin-bottom: 8px;">
-                
+
+                <input type="text" id="nickname-input" class="key-input" placeholder="닉네임 (미입력 시 랜덤)" maxlength="20"
+                    style="margin-bottom: 8px;">
+
                 <input type="password" id="api-key-input" class="key-input" placeholder="보안 키를 입력하세요">
                 <button class="btn-enter" onclick="handleKeyLogin()">입장하기</button>
-                
+
                 <div class="qr-divider">또는 QR 코드로 입력</div>
                 <div class="qr-btn-group">
                     <button class="btn-qr" onclick="startQrScan()">📷 카메라</button>
                     <button class="btn-qr" onclick="document.getElementById('qr-input-file').click()">🖼️ 앨범</button>
                 </div>
-                
+
                 <div id="reader"></div>
                 <button id="btn-stop-scan" class="btn-stop-scan" onclick="stopQrScan()">스캔 취소</button>
-                
+
                 <input type="file" id="qr-input-file" accept="image/*" hidden onchange="scanFromFile(this)">
                 <p id="error-msg" style="color: #e74c3c; font-size: 12px; margin-top: 10px;"></p>
             </div>
@@ -380,11 +493,19 @@
                 </div>
                 <button class="btn-logout" onclick="handleLogout()">나가기</button>
             </div>
+
             <div id="chat-area" class="chat-area"></div>
+
+            <!-- 새 메시지 알림 -->
+            <div id="new-msg-alert" onclick="scrollToBottom()">
+                <span>⬇️ 새 메시지</span>
+            </div>
+
             <div class="input-area">
                 <input type="text" id="msg-input" placeholder="메시지를 입력하세요"
                     onkeypress="if(event.key==='Enter') sendMessage()">
-                <button id="send-btn" onclick="sendMessage()">➤</button>
+                <!-- onclick을 제거하고 JS에서 이벤트를 바인딩합니다 -->
+                <button id="send-btn">➤</button>
             </div>
         </div>
     </div>
@@ -407,6 +528,7 @@
         let app, db, auth, user;
         let myNick = "";
         let isChatLoaded = false;
+        let isInitialLoad = true; // 첫 로딩인지 확인
 
         // 페이지 로드 시 로컬스토리지에서 닉네임 불러오기
         window.addEventListener('DOMContentLoaded', () => {
@@ -414,18 +536,105 @@
             if (savedNick) {
                 document.getElementById('nickname-input').value = savedNick;
             }
+            setupSendButton(); // 전송 버튼 이벤트 설정
+            setupScrollListener(); // 스크롤 이벤트 설정
         });
 
-        // 닉네임 생성기
-        const verbs = ["춤추는", "날아다니는", "코딩하는", "노래하는", "잠자는", "라면먹는", "달리는", "멍때리는", "수영하는", "책읽는", "게임하는", "청소하는", "요리하는", "여행하는", "꿈꾸는", "기도하는", "운동하는", "산책하는", "운전하는", "공부하는", "비트타는", "그림그리는", "소리지르는", "속삭이는", "숨어있는"];
-        const adjectives = ["행복한", "슬픈", "배고픈", "시크한", "소심한", "용감한", "똑똑한", "수상한", "귀여운", "무서운", "화려한", "투명한", "강력한", "게으른", "부지런한", "조용한", "시끄러운", "우아한", "엉뚱한", "섹시한", "진지한", "유쾌한", "냉정한", "따뜻한", "친절한"];
-        const animals = ["호랑이", "사자", "토끼", "다람쥐", "펭귄", "고양이", "강아지", "쿼카", "알파카", "오리", "독수리", "거북이", "판다", "너구리", "여우", "곰돌이", "돌고래", "부엉이", "기린", "코끼리", "햄스터", "앵무새", "수달", "하마", "미어캣"];
+        // 전송 버튼 포커스 방지 설정 (모바일 키보드 버그 해결 핵심)
+        function setupSendButton() {
+            const btn = document.getElementById('send-btn');
+            const handleSend = (e) => {
+                // 이 이벤트가 발생했을 때 기본 동작(포커스 이동)을 막습니다.
+                e.preventDefault();
+                sendMessage();
+            };
+
+            // 터치 및 마우스 이벤트 모두 처리
+            btn.addEventListener('mousedown', handleSend);
+            btn.addEventListener('touchstart', handleSend);
+        }
+
+        // 스크롤 감지 및 새 메시지 알림 숨김 처리
+        function setupScrollListener() {
+            const chatArea = document.getElementById('chat-area');
+            const alertBadge = document.getElementById('new-msg-alert');
+
+            chatArea.addEventListener('scroll', () => {
+                const threshold = 50; // 여유값
+                const isBottom = chatArea.scrollHeight - chatArea.scrollTop - chatArea.clientHeight <= threshold;
+
+                if (isBottom) {
+                    alertBadge.classList.remove('show');
+                }
+            });
+        }
+
+        // 하단으로 스크롤 이동 함수
+        window.scrollToBottom = () => {
+            const chatArea = document.getElementById('chat-area');
+            chatArea.scrollTop = chatArea.scrollHeight;
+            document.getElementById('new-msg-alert').classList.remove('show');
+        };
+
+        // 닉네임 생성기 (대폭 확장된 목록)
+        const verbs = [
+            "춤추는", "날아다니는", "코딩하는", "노래하는", "잠자는", "라면먹는", "달리는", "멍때리는", "수영하는", "책읽는",
+            "게임하는", "청소하는", "요리하는", "여행하는", "꿈꾸는", "기도하는", "운동하는", "산책하는", "운전하는", "공부하는",
+            "비트타는", "그림그리는", "소리지르는", "속삭이는", "숨어있는", "야근하는", "출근하는", "퇴근하는", "사랑하는", "미워하는",
+            "생각하는", "낚시하는", "등산하는", "쇼핑하는", "커피마시는", "치킨먹는", "피자먹는", "물마시는", "전화하는", "카톡하는",
+            "유튜브보는", "넷플보는", "인스타하는", "트윗하는", "눈물흘리는", "웃고있는", "화내고있는", "삐져있는", "달나라가는", "우주가는",
+            "땅파는", "집짓는", "부수는", "고치는", "도망치는", "쫓아가는", "숨쉬는", "하품하는", "기지개켜는", "세수하는",
+            "샤워하는", "목욕하는", "양치하는", "머리감는", "화장하는", "면도하는", "옷입는", "신발신는", "안경쓴", "모자쓴",
+            "마스크쓴", "가방멘", "우산쓴", "자전거타는", "버스탄", "지하철탄", "비행기탄", "배탄", "로켓탄", "우주선탄",
+            "헤엄치는", "다이빙하는", "서핑하는", "스키타는", "보드타는", "스케이트타는", "축구하는", "농구하는", "야구하는", "배구하는",
+            "피구하는", "족구하는", "탁구하는", "테니스치는", "골프치는", "볼링치는", "당구치는", "포켓볼치는", "체스두는", "바둑두는",
+            "장기두는", "오목두는", "고스톱치는", "포커치는", "마술하는", "연기하는", "노래부르는", "랩하는", "디제잉하는", "드럼치는",
+            "기타치는", "피아노치는", "바이올린켜는", "플룻부는", "트럼펫부는", "지휘하는", "박수치는", "응원하는", "구경하는", "촬영하는",
+            "녹음하는", "방송하는", "스트리밍하는", "채굴하는", "투자하는", "저축하는", "소비하는", "기부하는", "봉사하는", "치료하는", "개발하는"
+        ]; // 약 130개
+
+        const adjectives = [
+            "행복한", "슬픈", "배고픈", "시크한", "소심한", "용감한", "똑똑한", "수상한", "귀여운", "무서운",
+            "화려한", "투명한", "강력한", "게으른", "부지런한", "조용한", "시끄러운", "우아한", "엉뚱한", "섹시한",
+            "진지한", "유쾌한", "냉정한", "따뜻한", "친절한", "불친절한", "가난한", "부유한", "건강한", "아픈",
+            "피곤한", "상쾌한", "지루한", "재미있는", "신비로운", "평범한", "특별한", "이상한", "미친", "제정신인",
+            "순수한", "타락한", "검은", "하얀", "빨간", "파란", "노란", "초록", "보라", "분홍",
+            "황금", "은빛", "무지개", "빛나는", "어두운", "흐릿한", "선명한", "거대한", "조그만", "길쭉한",
+            "뚱뚱한", "날씬한", "통통한", "마른", "근육질의", "말랑한", "딱딱한", "부드러운", "거친", "매끄러운",
+            "차가운", "뜨거운", "미지근한", "매운", "달콤한", "쓴", "신", "짠", "싱거운", "고소한",
+            "느끼한", "담백한", "비싼", "싼", "새로운", "오래된", "빈티지", "모던한", "클래식한", "힙한",
+            "인싸", "아싸", "천재", "바보", "고수", "중수", "하수", "초보", "만렙", "뉴비",
+            "전설의", "환상의", "최고의", "최악의", "무적의", "유일한", "흔한", "희귀한", "멸종위기", "살아남은",
+            "죽지않는", "영원한", "일시적인", "가짜", "진짜", "원조", "짝퉁", "국산", "수입", "외계",
+            "지옥에서온", "천국에서온", "미래에서온", "과거에서온", "이세계", "저세상", "킹받는", "야무진", "엄청난", "대단한"
+        ]; // 약 130개
+
+        const animals = [
+            "호랑이", "사자", "토끼", "다람쥐", "펭귄", "고양이", "강아지", "쿼카", "알파카", "오리",
+            "독수리", "거북이", "판다", "너구리", "여우", "곰돌이", "돌고래", "부엉이", "기린", "코끼리",
+            "햄스터", "앵무새", "수달", "하마", "미어캣", "치타", "표범", "재규어", "퓨마", "하이에나",
+            "늑대", "코요테", "들개", "반달곰", "북극곰", "불곰", "팬더", "래서팬더", "나무늘보", "두더지",
+            "고슴도치", "박쥐", "캥거루", "코알라", "웜뱃", "오리너구리", "타조", "공작", "학", "두루미",
+            "백조", "거위", "닭", "병아리", "비둘기", "까치", "까마귀", "참새", "제비", "갈매기",
+            "펠리컨", "홍학", "악어", "도마뱀", "카멜레온", "이구아나", "뱀", "구렁이", "개구리", "두꺼비",
+            "도룡뇽", "상어", "고래", "범고래", "물개", "바다표범", "바다코끼리", "매너티", "듀공", "가오리",
+            "오징어", "문어", "낙지", "쭈꾸미", "게", "가재", "새우", "랍스터", "조개", "소라",
+            "해파리", "불가사리", "성게", "해마", "금붕어", "잉어", "송어", "연어", "참치", "고등어",
+            "티라노", "트리케라", "벨로시", "브라키오", "용", "드래곤", "유니콘", "페가수스", "피닉스", "해태",
+            "사람", "외계인", "로봇", "안드로이드", "사이보그", "유령", "좀비", "스켈레톤", "슬라임", "고블린",
+            "오크", "엘프", "드워프", "천사", "악마", "신", "왕", "여왕", "왕자", "공주", "개발자"
+        ]; // 약 130개
 
         function generateRandomNick() {
             const v = verbs[Math.floor(Math.random() * verbs.length)];
             const a = adjectives[Math.floor(Math.random() * adjectives.length)];
             const n = animals[Math.floor(Math.random() * animals.length)];
-            return `${v} ${a} ${n}`;
+
+            // 4자리 랜덤 숫자 (1000 ~ 9999)
+            // 총 조합 수 = (130 * 130 * 130) * 9000 = 약 200억 개
+            const tag = Math.floor(Math.random() * 9000) + 1000;
+
+            return `${v} ${a} ${n} #${tag}`;
         }
 
         // 로그인 로직
@@ -433,7 +642,7 @@
             const inputKey = document.getElementById('api-key-input').value.trim();
             const inputNick = document.getElementById('nickname-input').value.trim();
             const errorMsg = document.getElementById('error-msg');
-            
+
             if (!inputKey) {
                 errorMsg.innerText = "보안 키를 입력해주세요.";
                 return;
@@ -442,7 +651,7 @@
             try {
                 const config = { ...baseConfig, apiKey: inputKey };
                 if (getApps().length > 0) {
-                    location.reload(); 
+                    location.reload();
                     return;
                 }
 
@@ -456,11 +665,11 @@
                 // 닉네임 설정
                 if (inputNick) {
                     myNick = inputNick;
-                    localStorage.setItem('shoga_user_nick', inputNick); // 로컬스토리지 저장
+                    localStorage.setItem('shoga_user_nick', inputNick);
                 } else {
                     myNick = generateRandomNick();
                 }
-                
+
                 showChatScreen();
 
             } catch (error) {
@@ -487,7 +696,7 @@
             document.getElementById('login-screen').classList.add('hidden');
             document.getElementById('chat-screen').classList.remove('hidden');
             document.getElementById('my-nick-display').innerText = myNick;
-            stopQrScan(); 
+            stopQrScan();
 
             if (!isChatLoaded) {
                 loadChat();
@@ -506,22 +715,65 @@
             });
         }
 
+        // 시간 포맷 함수
+        function formatTime(timestamp) {
+            if (!timestamp) return '';
+            const date = new Date(timestamp);
+            let hours = date.getHours();
+            const minutes = date.getMinutes();
+            const ampm = hours >= 12 ? '오후' : '오전';
+            hours = hours % 12;
+            hours = hours ? hours : 12; // 0시는 12시로 표시
+            const strMinutes = minutes < 10 ? '0' + minutes : minutes;
+            return `${ampm} ${hours}:${strMinutes}`;
+        }
+
         function drawMessage(data) {
             const chatArea = document.getElementById('chat-area');
+            const alertBadge = document.getElementById('new-msg-alert');
             const isMe = user && (data.uid === user.uid);
+
+            // 현재 스크롤이 바닥에 있는지 확인 (새 메시지 그리기 전 체크)
+            const threshold = 50;
+            const wasAtBottom = chatArea.scrollHeight - chatArea.scrollTop - chatArea.clientHeight <= threshold;
+
             const row = document.createElement('div');
             row.className = `msg-row ${isMe ? 'me' : 'other'}`;
+
+            const timeStr = data.time ? formatTime(data.time) : '';
 
             let html = '';
             if (!isMe) {
                 html += `<span class="sender-name">${escapeHtml(data.nick)}</span>`;
             }
-            html += `<div class="bubble">${escapeHtml(data.text)}</div>`;
+
+            // 버블과 시간을 감싸는 컨테이너
+            html += `<div class="bubble-container">`;
+            html += `  <div class="bubble">${escapeHtml(data.text)}</div>`;
+            html += `  <span class="msg-time">${timeStr}</span>`;
+            html += `</div>`;
 
             row.innerHTML = html;
             chatArea.appendChild(row);
-            chatArea.scrollTop = chatArea.scrollHeight;
+
+            if (isInitialLoad) {
+                chatArea.scrollTop = chatArea.scrollHeight;
+                return;
+            }
+
+            if (isMe || wasAtBottom) {
+                chatArea.scrollTop = chatArea.scrollHeight;
+                alertBadge.classList.remove('show');
+            } else {
+                // 스크롤이 위에 가 있을 때 새 메시지 도착
+                alertBadge.classList.add('show');
+            }
         }
+
+        // 초기 로딩 상태 해제
+        setTimeout(() => {
+            isInitialLoad = false;
+        }, 2000);
 
         window.sendMessage = () => {
             const input = document.getElementById('msg-input');
@@ -536,7 +788,6 @@
                 time: serverTimestamp()
             }).then(() => {
                 input.value = '';
-                input.focus();
             }).catch(() => alert("전송 실패"));
         };
 
@@ -549,7 +800,6 @@
             if (e.key === 'Enter') window.handleKeyLogin();
         });
 
-        // 닉네임 칸에서 엔터 치면 비밀번호 칸으로 이동
         document.getElementById('nickname-input').addEventListener('keypress', (e) => {
             if (e.key === 'Enter') document.getElementById('api-key-input').focus();
         });
@@ -566,12 +816,12 @@
             stopBtn.style.display = "inline-block";
             html5QrcodeScanner = new Html5Qrcode("reader");
             const config = { fps: 10, qrbox: { width: 250, height: 250 } };
-            
+
             html5QrcodeScanner.start({ facingMode: "environment" }, config, onScanSuccess)
-            .catch(err => {
-                alert("카메라를 시작할 수 없습니다.");
-                stopQrScan();
-            });
+                .catch(err => {
+                    alert("카메라를 시작할 수 없습니다.");
+                    stopQrScan();
+                });
         }
 
         function scanFromFile(input) {
@@ -579,11 +829,11 @@
             const imageFile = input.files[0];
             const html5QrCode = new Html5Qrcode("reader");
             html5QrCode.scanFile(imageFile, true)
-            .then(onScanSuccess)
-            .catch(err => {
-                alert("QR 코드를 찾을 수 없습니다.");
-                input.value = '';
-            });
+                .then(onScanSuccess)
+                .catch(err => {
+                    alert("QR 코드를 찾을 수 없습니다.");
+                    input.value = '';
+                });
         }
 
         function onScanSuccess(decodedText) {
@@ -605,4 +855,5 @@
         }
     </script>
 </body>
+
 </html>
