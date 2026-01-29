@@ -35,6 +35,12 @@
             --lina-bubble-text: #5b21b6;
             --lina-bubble-border: rgba(124, 58, 237, 0.25);
             --lina-shadow: 0 4px 15px rgba(139, 92, 246, 0.2), 0 0 15px rgba(139, 92, 246, 0.15);
+
+            /* AI Lia Styles - Light Mode (Pink/Rose Theme) */
+            --lia-bubble-bg: linear-gradient(145deg, #fff0f5 0%, #fff5f7 100%);
+            --lia-bubble-text: #be185d;
+            --lia-bubble-border: rgba(219, 39, 119, 0.25);
+            --lia-shadow: 0 4px 15px rgba(219, 39, 119, 0.2), 0 0 15px rgba(219, 39, 119, 0.15);
         }
 
         @media (prefers-color-scheme: dark) {
@@ -65,6 +71,12 @@
                 --lina-bubble-text: #e9d5ff;
                 --lina-bubble-border: rgba(139, 92, 246, 0.5);
                 --lina-shadow: 0 8px 25px rgba(0, 0, 0, 0.6), 0 0 20px rgba(139, 92, 246, 0.35);
+
+                /* AI Lia Styles - Dark Mode */
+                --lia-bubble-bg: linear-gradient(145deg, #500724 0%, #3a0318 100%);
+                --lia-bubble-text: #fbcfe8;
+                --lia-bubble-border: rgba(219, 39, 119, 0.5);
+                --lia-shadow: 0 8px 25px rgba(0, 0, 0, 0.6), 0 0 20px rgba(219, 39, 119, 0.35);
             }
         }
 
@@ -387,7 +399,6 @@
             border-top-left-radius: 4px;
         }
 
-        /* AI 리나 전용 스타일 수정 (Enhanced Glow & Depth) */
         .msg-row.lina-msg .bubble {
             background: var(--lina-bubble-bg);
             color: var(--lina-bubble-text);
@@ -409,6 +420,29 @@
             pointer-events: none;
         }
 
+        /* Lia Message Style */
+        .msg-row.lia-msg .bubble {
+            background: var(--lia-bubble-bg);
+            color: var(--lia-bubble-text);
+            border: 1px solid var(--lia-bubble-border);
+            box-shadow: var(--lia-shadow);
+            position: relative;
+            animation: lina-entry 0.6s ease-out;
+            /* Reuse same animation */
+            overflow: hidden;
+        }
+
+        .msg-row.lia-msg .bubble::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: rgba(255, 255, 255, 0.4);
+            pointer-events: none;
+        }
+
         .badge-ai {
             background: #7c3aed;
             color: #fff;
@@ -419,6 +453,11 @@
             text-shadow: none;
             letter-spacing: 0.5px;
             box-shadow: 0 1px 4px rgba(124, 58, 237, 0.3);
+        }
+
+        .msg-row.lia-msg .badge-ai {
+            background: #db2777;
+            box-shadow: 0 1px 4px rgba(219, 39, 119, 0.3);
         }
 
         @keyframes lina-entry {
@@ -788,12 +827,13 @@
             const alertBadge = document.getElementById('new-msg-alert');
             const isMe = user && (data.uid === user.uid);
             const isLina = data.nick === '리나';
+            const isLia = data.nick === '리아';
 
             const threshold = 50;
             const wasAtBottom = chatArea.scrollHeight - chatArea.scrollTop - chatArea.clientHeight <= threshold;
 
             const row = document.createElement('div');
-            row.className = `msg-row ${isMe ? 'me' : 'other'} ${isLina ? 'lina-msg' : ''}`;
+            row.className = `msg-row ${isMe ? 'me' : 'other'} ${isLina ? 'lina-msg' : ''} ${isLia ? 'lia-msg' : ''}`;
 
             const timeStr = data.time ? formatTime(data.time) : '';
             const nickColor = getNickColor(data.nick);
@@ -802,7 +842,7 @@
             if (!isMe) {
                 html += `<span class="sender-name" style="color: ${nickColor}">
                             ${escapeHtml(formatDisplayNick(data.nick))}
-                            ${isLina ? '<span class="badge-ai">AI</span>' : ''}
+                            ${(isLina || isLia) ? '<span class="badge-ai">AI</span>' : ''}
                          </span>`;
             }
 
