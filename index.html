@@ -509,9 +509,20 @@
             justify-content: center;
             cursor: pointer;
             color: #3b1e1e;
-            font-size: 18px;
+            transition: background 0.2s, transform 0.1s;
             -webkit-tap-highlight-color: transparent;
             user-select: none;
+        }
+
+        #send-btn:active {
+            transform: scale(0.92);
+        }
+
+        #send-btn svg {
+            width: 20px;
+            height: 20px;
+            fill: currentColor;
+            transform: translateX(-1px);
         }
 
         #new-msg-alert {
@@ -606,7 +617,11 @@
             <div class="input-area">
                 <input type="text" id="msg-input" placeholder="메시지를 입력하세요"
                     onkeypress="if(event.key==='Enter') sendMessage()">
-                <button id="send-btn">➤</button>
+                <button id="send-btn">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"></path>
+                    </svg>
+                </button>
             </div>
         </div>
     </div>
