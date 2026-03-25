@@ -5,7 +5,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Shoga CLI Transmitter</title>
-    <!-- 동적 파비콘을 위한 기본 아이콘 설정 -->
     <link id="dynamic-favicon" rel="icon" type="image/svg+xml"
         href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%230c0c0c'/%3E%3Ctext x='2' y='12' fill='%2300ff00' font-family='monospace' font-size='12'%3E%3E%3C/text%3E%3C/svg%3E">
     <style>
@@ -35,28 +34,24 @@
             font-size: 14px;
         }
 
-        /* 1. 상단 모니터 영역 (화면의 85% 차지) */
         #monitor-panel {
             flex: 0 0 85%;
             background-color: var(--monitor-bg);
             border-bottom: 2px solid #333;
             padding: 10px;
             overflow-y: auto;
-            /* 스크롤 가능 */
             white-space: pre-wrap;
             font-size: 13px;
             color: #aaa;
             position: relative;
         }
 
-        /* 상태 표시 (공중에 떠 있는 느낌) */
         #status-float {
             position: sticky;
             top: 0;
             float: right;
             text-align: right;
             background: rgba(26, 26, 26, 0.8);
-            /* 반투명 배경 */
             backdrop-filter: blur(2px);
             padding: 4px 10px;
             border-radius: 4px;
@@ -65,10 +60,8 @@
             font-size: 11px;
             z-index: 100;
             margin-bottom: -25px;
-            /* 공간 차지 최소화 */
         }
 
-        /* 2. 하단 터미널 영역 (나머지 30%) */
         #terminal-panel {
             flex: 1;
             padding: 10px;
@@ -125,7 +118,6 @@
 
         #json-viewer {
             padding-top: 10px;
-            /* 상태바와 겹치지 않게 여백 */
         }
 
         ::-webkit-scrollbar {
@@ -171,12 +163,15 @@
         const logArea = document.getElementById('log-area');
         const cmdInput = document.getElementById('cmd-input');
 
-        const urlParams = new URLSearchParams(window.location.search);
-        const urlApiKey = urlParams.get('apiKey');
-        const urlNick = urlParams.get('nick');
-        const urlRoomId = urlParams.get('roomId');
+        const sessionApiKey = sessionStorage.getItem('temp_console_api_key');
+        const sessionNick = sessionStorage.getItem('temp_console_nick');
+        const sessionRoomId = sessionStorage.getItem('temp_console_room_id');
 
-        if (!urlApiKey) {
+        sessionStorage.removeItem('temp_console_api_key');
+        sessionStorage.removeItem('temp_console_nick');
+        sessionStorage.removeItem('temp_console_room_id');
+
+        if (!sessionApiKey) {
             statusFloat.innerText = "MISSING API KEY";
             statusFloat.style.color = "#ff5555";
             const div = document.createElement('div');
@@ -186,10 +181,10 @@
             throw new Error("API Key is missing");
         }
 
-        const FIXED_NICK = urlNick || "쇼가";
-        const GLOBAL_ROOM_ID = urlRoomId || "Laboratory";
+        const FIXED_NICK = sessionNick || "쇼가";
+        const GLOBAL_ROOM_ID = sessionRoomId || "Laboratory";
         const firebaseConfig = {
-            apiKey: urlApiKey,
+            apiKey: sessionApiKey,
             authDomain: "shoga-intermediary.firebaseapp.com",
             databaseURL: "https://shoga-intermediary-default-rtdb.firebaseio.com",
             projectId: "shoga-intermediary",
@@ -278,7 +273,7 @@
                 if (!data || (currentUser && data.uid === currentUser.uid)) return;
 
                 if (document.hidden) {
-                    setFaviconAlert(true); 
+                    setFaviconAlert(true);
 
                     if ("Notification" in window && Notification.permission === "granted") {
                         const notification = new Notification(data.nick || "Unknown", {

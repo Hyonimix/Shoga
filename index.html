@@ -107,9 +107,9 @@
 
         @media (min-width: 500px) {
             .app-container {
-                max-width: 400px;
+                max-width: 800px;
                 height: 90vh;
-                border-radius: 24px;
+                border-radius: 12px;
                 border: 1px solid #e0e0e0;
             }
         }
@@ -631,6 +631,7 @@
         let myNick = "";
         let isChatLoaded = false;
         let isInitialLoad = true;
+        let lastSenderId = null;
 
         // Core Initialization
         window.addEventListener('DOMContentLoaded', () => {
@@ -839,8 +840,11 @@
 
             localStorage.setItem('shoga_room_id', currentRoomId);
 
-            const url = `shogaConsole.html?apiKey=${encodeURIComponent(inputKey)}&nick=${encodeURIComponent(finalNick)}&roomId=${encodeURIComponent(currentRoomId)}`;
-            window.open(url, '_blank');
+            sessionStorage.setItem('temp_console_api_key', inputKey);
+            sessionStorage.setItem('temp_console_nick', finalNick);
+            sessionStorage.setItem('temp_console_room_id', currentRoomId);
+
+            window.open('shogaConsole.html', '_blank');
         };
 
         window.handleLogout = () => {
@@ -902,17 +906,21 @@
             const isLina = data.nick === '리나';
             const isLia = data.nick === '리아';
 
+            const currentSenderId = data.uid || data.nick;
+            const isConsecutive = (lastSenderId === currentSenderId);
+            lastSenderId = currentSenderId;
+
             const threshold = 50;
             const wasAtBottom = chatArea.scrollHeight - chatArea.scrollTop - chatArea.clientHeight <= threshold;
 
             const row = document.createElement('div');
-            row.className = `msg-row ${isMe ? 'me' : 'other'} ${isLina ? 'lina-msg' : ''} ${isLia ? 'lia-msg' : ''}`;
+            row.className = `msg-row ${isMe ? 'me' : 'other'} ${isLina ? 'lina-msg' : ''} ${isLia ? 'lia-msg' : ''} ${isConsecutive ? 'consecutive' : ''}`;
 
             const timeStr = data.time ? formatTime(data.time) : '';
             const nickColor = getNickColor(data.nick);
 
             let html = '';
-            if (!isMe) {
+            if (!isMe && !isConsecutive) {
                 html += `<span class="sender-name" style="color: ${nickColor}">
                             ${escapeHtml(formatDisplayNick(data.nick))}
                             ${(isLina || isLia) ? '<span class="badge-ai">AI</span>' : ''}
