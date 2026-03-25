@@ -632,6 +632,7 @@
         let isChatLoaded = false;
         let isInitialLoad = true;
         let lastSenderId = null;
+        let lastMessageTimeStr = "";
 
         // Core Initialization
         window.addEventListener('DOMContentLoaded', () => {
@@ -907,8 +908,21 @@
             const isLia = data.nick === '리아';
 
             const currentSenderId = data.uid || data.nick;
+            const timeStr = data.time ? formatTime(data.time) : '';
+
             const isConsecutive = (lastSenderId === currentSenderId);
+            const isSameTime = (lastMessageTimeStr === timeStr);
+
+            if (isConsecutive && isSameTime) {
+                const lastRow = chatArea.lastElementChild;
+                if (lastRow && lastRow.classList.contains('msg-row')) {
+                    const lastTimeEl = lastRow.querySelector('.msg-time');
+                    if (lastTimeEl) lastTimeEl.style.display = 'none';
+                }
+            }
+
             lastSenderId = currentSenderId;
+            lastMessageTimeStr = timeStr;
 
             const threshold = 50;
             const wasAtBottom = chatArea.scrollHeight - chatArea.scrollTop - chatArea.clientHeight <= threshold;
@@ -916,7 +930,6 @@
             const row = document.createElement('div');
             row.className = `msg-row ${isMe ? 'me' : 'other'} ${isLina ? 'lina-msg' : ''} ${isLia ? 'lia-msg' : ''} ${isConsecutive ? 'consecutive' : ''}`;
 
-            const timeStr = data.time ? formatTime(data.time) : '';
             const nickColor = getNickColor(data.nick);
 
             let html = '';
