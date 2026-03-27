@@ -116,6 +116,10 @@
             outline: none;
         }
 
+        #cmd-input:disabled {
+            cursor: not-allowed;
+        }
+
         #json-viewer {
             padding-top: 10px;
         }
@@ -154,7 +158,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getDatabase, ref, push, onValue, onChildAdded, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+        import { getDatabase, ref, push, onChildAdded, serverTimestamp, query, limitToLast, orderByKey, endBefore, get } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
         const monitorPanel = document.getElementById('monitor-panel');
@@ -197,8 +201,14 @@
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
         const auth = getAuth(app);
+
         let currentUser = null;
         let isInitialLoad = true;
+        let chatDataCache = {};
+        let oldestMessageKey = null;
+        let isFirstLoadEvent = true;
+        let isLoadingHistory = false;
+        let hasMoreHistory = true;
 
         const defaultFavicon = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%230c0c0c'/%3E%3Ctext x='2' y='12' fill='%2300ff00' font-family='monospace' font-size='12'%3E%3E%3C/text%3E%3C/svg%3E";
         const alertFavicon = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%230c0c0c'/%3E%3Ctext x='2' y='12' fill='%2300ff00' font-family='monospace' font-size='12'%3E%3E%3C/text%3E%3Ccircle cx='13' cy='3' r='3' fill='%23ff5555'/%3E%3C/svg%3E";
@@ -251,38 +261,41 @@
 
         function startMonitoring() {
             const roomRef = ref(db, `chats/${GLOBAL_ROOM_ID}`);
+            const q = query(roomRef, limitToLast(500));
 
-            onValue(roomRef, (snapshot) => {
-                const data = snapshot.val();
-                if (data) {
-                    jsonViewer.innerText = JSON.stringify(data, null, 2);
-                    setTimeout(() => {
-                        monitorPanel.scrollTop = monitorPanel.scrollHeight;
-                    }, 0);
-                } else {
+            get(q).then((snapshot) => {
+                if (!snapshot.exists()) {
                     jsonViewer.innerText = "{ \"status\": \"Empty\" }";
                 }
-            }, (error) => {
-                jsonViewer.innerText = `[READ ERROR] ${error.message}`;
             });
 
-            onChildAdded(roomRef, (snapshot) => {
-                if (isInitialLoad) return;
-
+            onChildAdded(q, (snapshot) => {
+                const key = snapshot.key;
                 const data = snapshot.val();
-                if (!data || (currentUser && data.uid === currentUser.uid)) return;
 
-                if (document.hidden) {
-                    setFaviconAlert(true);
+                if (isFirstLoadEvent) {
+                    oldestMessageKey = key;
+                    isFirstLoadEvent = false;
+                }
 
-                    if ("Notification" in window && Notification.permission === "granted") {
-                        const notification = new Notification(data.nick || "Unknown", {
-                            body: data.text
-                        });
-                        notification.onclick = () => {
-                            window.focus();
-                            notification.close();
-                        };
+                chatDataCache[key] = data;
+                renderJsonViewer();
+
+                if (!isInitialLoad) {
+                    if (!data || (currentUser && data.uid === currentUser.uid)) return;
+
+                    if (document.hidden) {
+                        setFaviconAlert(true);
+
+                        if ("Notification" in window && Notification.permission === "granted") {
+                            const notification = new Notification(data.nick || "Unknown", {
+                                body: data.text
+                            });
+                            notification.onclick = () => {
+                                window.focus();
+                                notification.close();
+                            };
+                        }
                     }
                 }
             });
@@ -290,6 +303,87 @@
             setTimeout(() => {
                 isInitialLoad = false;
             }, 2000);
+        }
+
+        function renderJsonViewer() {
+            const isAtBottom = monitorPanel.scrollHeight - monitorPanel.scrollTop - monitorPanel.clientHeight <= 50;
+
+            const sortedKeys = Object.keys(chatDataCache).sort();
+            const orderedCache = {};
+            for (const k of sortedKeys) {
+                orderedCache[k] = chatDataCache[k];
+            }
+
+            jsonViewer.innerText = JSON.stringify(orderedCache, null, 2);
+
+            if (isAtBottom && !isLoadingHistory) {
+                setTimeout(() => {
+                    monitorPanel.scrollTop = monitorPanel.scrollHeight;
+                }, 0);
+            }
+        }
+
+        monitorPanel.addEventListener('scroll', async () => {
+            if (monitorPanel.scrollTop === 0 && !isLoadingHistory && hasMoreHistory) {
+                await loadMoreHistory();
+            }
+        });
+
+        async function loadMoreHistory() {
+            if (!oldestMessageKey || !hasMoreHistory || isLoadingHistory) return;
+            isLoadingHistory = true;
+
+            const oldScrollHeight = monitorPanel.scrollHeight;
+            printLog("Loading older messages...", 'sys');
+
+            try {
+                const roomRef = ref(db, `chats/${GLOBAL_ROOM_ID}`);
+                const q = query(roomRef, orderByKey(), endBefore(oldestMessageKey), limitToLast(500));
+                const snapshot = await get(q);
+
+                if (snapshot.exists()) {
+                    const messages = [];
+                    snapshot.forEach((childSnapshot) => {
+                        messages.push({ key: childSnapshot.key, data: childSnapshot.val() });
+                    });
+
+                    if (messages.length > 0) {
+                        oldestMessageKey = messages[0].key;
+
+                        messages.forEach((msgObj) => {
+                            chatDataCache[msgObj.key] = msgObj.data;
+                        });
+
+                        const sortedKeys = Object.keys(chatDataCache).sort();
+                        const orderedCache = {};
+                        for (const k of sortedKeys) {
+                            orderedCache[k] = chatDataCache[k];
+                        }
+                        chatDataCache = orderedCache;
+
+                        jsonViewer.innerText = JSON.stringify(chatDataCache, null, 2);
+
+                        setTimeout(() => {
+                            monitorPanel.scrollTop = monitorPanel.scrollHeight - oldScrollHeight;
+                        }, 0);
+
+                        printLog(`Loaded ${messages.length} older messages.`, 'sys');
+                    }
+
+                    if (messages.length < 500) {
+                        hasMoreHistory = false;
+                        printLog("No more history to load.", 'sys');
+                    }
+                } else {
+                    hasMoreHistory = false;
+                    printLog("No more history to load.", 'sys');
+                }
+            } catch (e) {
+                console.error("History load error", e);
+                printLog(`History load error: ${e.message}`, 'err');
+            }
+
+            isLoadingHistory = false;
         }
 
         async function sendMessage(text) {
@@ -309,7 +403,7 @@
             }
         }
 
-        cmdInput.addEventListener('keydown', (e) => {
+        cmdInput.addEventListener('keydown', async (e) => {
             if (e.key === 'Enter') {
                 const val = cmdInput.value.trim();
                 if (!val) return;
@@ -317,10 +411,18 @@
                 if (val === '/clear') {
                     logArea.innerHTML = '';
                     printLog("Console cleared.", 'sys');
+                    cmdInput.value = '';
                 } else {
-                    sendMessage(val);
+                    cmdInput.disabled = true;
+                    cmdInput.style.opacity = '0.5';
+
+                    await sendMessage(val);
+
+                    cmdInput.value = '';
+                    cmdInput.disabled = false;
+                    cmdInput.style.opacity = '1';
+                    cmdInput.focus();
                 }
-                cmdInput.value = '';
             }
         });
 

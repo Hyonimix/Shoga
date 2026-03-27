@@ -224,13 +224,17 @@
             gap: 6px;
         }
 
-        .btn-enter:hover {
+        .btn-enter:hover:not(:disabled) {
             background: #34495e;
             transform: translateY(-1px);
         }
 
-        .btn-enter:active {
+        .btn-enter:active:not(:disabled) {
             transform: scale(0.98);
+        }
+
+        .btn-enter:disabled {
+            cursor: not-allowed;
         }
 
         .qr-divider {
@@ -528,6 +532,10 @@
             font-size: 15px;
         }
 
+        #msg-input:disabled {
+            opacity: 0.6;
+        }
+
         #send-btn {
             background: #fef01b;
             border: none;
@@ -544,8 +552,12 @@
             user-select: none;
         }
 
-        #send-btn:active {
+        #send-btn:active:not(:disabled) {
             transform: scale(0.92);
+        }
+
+        #send-btn:disabled {
+            cursor: not-allowed;
         }
 
         #send-btn svg {
@@ -709,7 +721,7 @@
     <script type="module">
         // Firebase Auth & Database Module
         import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getDatabase, ref, push, onChildAdded, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+        import { getDatabase, ref, push, onChildAdded, serverTimestamp, query, limitToLast, orderByKey, endBefore, get } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
         import { getAuth, signInAnonymously, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
         const baseConfig = {
@@ -728,6 +740,11 @@
         let isInitialLoad = true;
         let lastSenderId = null;
         let lastMessageTimeStr = "";
+
+        let oldestMessageKey = null;
+        let isFirstLoadEvent = true;
+        let isLoadingHistory = false;
+        let hasMoreHistory = true;
 
         // Favicon Alert Setup
         const defaultFavicon = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0%25' stop-color='%237c3aed'/%3E%3Cstop offset='100%25' stop-color='%234ca1af'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='100' height='100' rx='24' fill='url(%23g)'/%3E%3Cg opacity='0.95'%3E%3Cpath d='M 45 25 H 55 V 43 L 73 71 V 75 H 27 V 71 L 45 43 Z' fill='%23ffffff' stroke='%23ffffff' stroke-width='8' stroke-linejoin='round'/%3E%3Crect x='39' y='20' width='22' height='6' rx='3' fill='%23ffffff'/%3E%3C/g%3E%3Cpath d='M 38 56 C 38 49, 43 44, 50 44 C 57 44, 62 49, 62 56 C 62 63, 57 68, 50 68 H 44 L 38 74 V 66 C 38 64, 38 61, 38 56 Z' fill='url(%23g)'/%3E%3Ccircle cx='50' cy='34' r='2.5' fill='url(%23g)'/%3E%3Ccircle cx='54' cy='27' r='1.5' fill='url(%23g)'/%3E%3Ccircle cx='50' cy='11' r='3' fill='%23ffffff'/%3E%3Ccircle cx='57' cy='5' r='1.5' fill='%23ffffff'/%3E%3Ccircle cx='43' cy='15' r='2' fill='%23ffffff'/%3E%3C/svg%3E";
@@ -793,11 +810,15 @@
             const chatArea = document.getElementById('chat-area');
             const alertBadge = document.getElementById('new-msg-alert');
 
-            chatArea.addEventListener('scroll', () => {
+            chatArea.addEventListener('scroll', async () => {
                 const threshold = 50;
                 const isBottom = chatArea.scrollHeight - chatArea.scrollTop - chatArea.clientHeight <= threshold;
                 if (isBottom) {
                     alertBadge.classList.remove('show');
+                }
+
+                if (chatArea.scrollTop === 0 && !isLoadingHistory && hasMoreHistory) {
+                    await loadMoreHistory();
                 }
             });
         }
@@ -886,11 +907,17 @@
             const inputNick = document.getElementById('nickname-input').value.trim();
             const isAutoLogin = document.getElementById('auto-login-checkbox').checked;
             const errorMsg = document.getElementById('error-msg');
+            const btnEnter = document.querySelector('.btn-enter');
 
             if (!inputKey) {
                 errorMsg.innerText = "보안 키를 입력해주세요.";
                 return;
             }
+
+            const originalBtnHtml = btnEnter.innerHTML;
+            btnEnter.innerHTML = '로그인 중...';
+            btnEnter.disabled = true;
+            btnEnter.style.opacity = '0.7';
 
             try {
                 const config = { ...baseConfig, apiKey: inputKey };
@@ -929,6 +956,10 @@
                     msg = "서버 설정 오류: Firebase 콘솔에서 '익명 로그인'을 켜주세요.";
                 }
                 errorMsg.innerText = msg;
+
+                btnEnter.innerHTML = originalBtnHtml;
+                btnEnter.disabled = false;
+                btnEnter.style.opacity = '1';
             }
         };
 
@@ -993,10 +1024,122 @@
             const chatArea = document.getElementById('chat-area');
             chatArea.innerHTML = `<div class="system-msg">인증 성공! 닉네임:[${formatDisplayNick(myNick)}]</div>`;
             const chatRef = ref(db, 'chats/' + currentRoomId);
-            onChildAdded(chatRef, (snapshot) => {
+            const q = query(chatRef, limitToLast(100));
+
+            isFirstLoadEvent = true;
+            oldestMessageKey = null;
+            hasMoreHistory = true;
+
+            onChildAdded(q, (snapshot) => {
                 const data = snapshot.val();
+                const key = snapshot.key;
+
+                if (isFirstLoadEvent) {
+                    oldestMessageKey = key;
+                    isFirstLoadEvent = false;
+                }
+
                 if (data) drawMessage(data);
             });
+        }
+
+        async function loadMoreHistory() {
+            if (!oldestMessageKey || !hasMoreHistory || isLoadingHistory) return;
+            isLoadingHistory = true;
+
+            const chatArea = document.getElementById('chat-area');
+            const oldScrollHeight = chatArea.scrollHeight;
+
+            const loadingMsg = document.createElement('div');
+            loadingMsg.className = 'system-msg';
+            loadingMsg.innerText = '이전 대화 불러오는 중...';
+            chatArea.prepend(loadingMsg);
+
+            try {
+                const chatRef = ref(db, 'chats/' + currentRoomId);
+                const q = query(chatRef, orderByKey(), endBefore(oldestMessageKey), limitToLast(100));
+                const snapshot = await get(q);
+
+                loadingMsg.remove();
+
+                if (snapshot.exists()) {
+                    const messages = [];
+                    snapshot.forEach((childSnapshot) => {
+                        messages.push({ key: childSnapshot.key, data: childSnapshot.val() });
+                    });
+
+                    if (messages.length > 0) {
+                        oldestMessageKey = messages[0].key;
+
+                        const fragment = document.createDocumentFragment();
+                        let chunkLastSenderId = null;
+                        let chunkLastMessageTimeStr = "";
+
+                        messages.forEach((msgObj) => {
+                            const data = msgObj.data;
+                            const isMe = user && (data.uid === user.uid);
+                            const isLina = data.nick === '리나';
+                            const isLia = data.nick === '리아';
+                            const currentSenderId = data.uid || data.nick;
+                            const timeStr = data.time ? formatTime(data.time) : '';
+
+                            const isConsecutive = (chunkLastSenderId === currentSenderId) && (chunkLastMessageTimeStr === timeStr);
+
+                            if (isConsecutive) {
+                                const lastRow = fragment.lastElementChild;
+                                if (lastRow && lastRow.classList.contains('msg-row')) {
+                                    const lastTimeEl = lastRow.querySelector('.msg-time');
+                                    if (lastTimeEl) lastTimeEl.style.display = 'none';
+                                }
+                            }
+
+                            chunkLastSenderId = currentSenderId;
+                            chunkLastMessageTimeStr = timeStr;
+
+                            const row = document.createElement('div');
+                            row.className = `msg-row ${isMe ? 'me' : 'other'} ${isLina ? 'lina-msg' : ''} ${isLia ? 'lia-msg' : ''} ${isConsecutive ? 'consecutive' : ''}`;
+
+                            const nickColor = getNickColor(data.nick);
+
+                            let html = '';
+                            if (!isMe && !isConsecutive) {
+                                html += `<span class="sender-name" style="color: ${nickColor}">
+                                            ${escapeHtml(formatDisplayNick(data.nick))}
+                                            ${(isLina || isLia) ? '<span class="badge-ai">AI</span>' : ''}
+                                         </span>`;
+                            }
+
+                            html += `<div class="bubble-container">`;
+                            html += `  <div class="bubble">${escapeHtml(data.text)}</div>`;
+                            html += `  <span class="msg-time">${timeStr}</span>`;
+                            html += `</div>`;
+
+                            row.innerHTML = html;
+                            fragment.appendChild(row);
+                        });
+
+                        const systemMsg = chatArea.querySelector('.system-msg');
+                        if (systemMsg && systemMsg.parentNode === chatArea && systemMsg.nextSibling) {
+                            chatArea.insertBefore(fragment, systemMsg.nextSibling);
+                        } else {
+                            chatArea.prepend(fragment);
+                        }
+
+                        chatArea.scrollTop = chatArea.scrollHeight - oldScrollHeight;
+                    }
+
+                    if (messages.length < 100) {
+                        hasMoreHistory = false;
+                    }
+                } else {
+                    hasMoreHistory = false;
+                }
+            } catch (e) {
+                console.error("History load error", e);
+                loadingMsg.remove();
+            }
+
+            isLoadingHistory = false;
         }
 
         function formatTime(timestamp) {
@@ -1091,8 +1234,14 @@
 
         window.sendMessage = () => {
             const input = document.getElementById('msg-input');
+            const btn = document.getElementById('send-btn');
             const text = input.value.trim();
             if (!text || !user) return;
+
+            input.disabled = true;
+            btn.disabled = true;
+            btn.style.opacity = '0.5';
+
             const chatRef = ref(db, 'chats/' + currentRoomId);
             push(chatRef, {
                 uid: user.uid,
@@ -1101,7 +1250,14 @@
                 time: serverTimestamp()
             }).then(() => {
                 input.value = '';
-            }).catch(() => alert("전송 실패"));
+            }).catch(() => {
+                alert("전송 실패");
+            }).finally(() => {
+                input.disabled = false;
+                btn.disabled = false;
+                btn.style.opacity = '1';
+                input.focus();
+            });
         };
 
         function escapeHtml(text) {
