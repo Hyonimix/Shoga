@@ -1023,13 +1023,18 @@
 
         function loadChat() {
             const chatArea = document.getElementById('chat-area');
-            chatArea.innerHTML = `<div class="system-msg">인증 성공! 닉네임:[${formatDisplayNick(myNick)}]</div>`;
+            chatArea.innerHTML = `<div class="system-msg" id="auth-success-msg">인증 성공! 닉네임:[${formatDisplayNick(myNick)}]</div>`;
             const chatRef = ref(db, 'chats/' + currentRoomId);
             const q = query(chatRef, limitToLast(100));
 
             isFirstLoadEvent = true;
             oldestMessageKey = null;
             hasMoreHistory = true;
+
+            get(q).then(() => {
+                const msg = document.getElementById('auth-success-msg');
+                if (msg) msg.remove();
+            }).catch(e => console.error(e));
 
             onChildAdded(q, (snapshot) => {
                 const data = snapshot.val();
@@ -1128,9 +1133,7 @@
                         }
 
                         chatArea.scrollTop = chatArea.scrollHeight - oldScrollHeight + currentScrollTop;
-                    }
-
-                    if (messages.length < 100) {
+                    } else {
                         hasMoreHistory = false;
                     }
                 } else {

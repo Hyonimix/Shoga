@@ -383,9 +383,7 @@
                         monitorPanel.scrollTop = monitorPanel.scrollHeight - oldScrollHeight + currentScrollTop;
 
                         printLog(`Loaded ${messages.length} older messages.`, 'sys');
-                    }
-
-                    if (messages.length < 500) {
+                    } else {
                         hasMoreHistory = false;
                         printLog("No more history to load.", 'sys');
                     }
