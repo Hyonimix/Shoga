@@ -44,6 +44,7 @@
             font-size: 13px;
             color: #aaa;
             position: relative;
+            overflow-anchor: none;
         }
 
         #status-float {
@@ -122,6 +123,25 @@
 
         #json-viewer {
             padding-top: 10px;
+            font-family: var(--font-stack);
+        }
+
+        #json-viewer::before {
+            content: "{";
+            display: block;
+            color: #aaa;
+        }
+
+        #json-viewer::after {
+            content: "}";
+            display: block;
+            color: #aaa;
+        }
+
+        .json-entry {
+            margin-left: 20px;
+            white-space: pre-wrap;
+            color: #ccc;
         }
 
         ::-webkit-scrollbar {
@@ -142,7 +162,9 @@
 
     <div id="monitor-panel">
         <div id="status-float">Connecting...</div>
-        <div id="json-viewer">Waiting for stream...</div>
+        <div id="json-viewer">
+            <div class="json-entry">"status": "Waiting for stream..."</div>
+        </div>
     </div>
 
     <div id="terminal-panel">
@@ -204,11 +226,11 @@
 
         let currentUser = null;
         let isInitialLoad = true;
-        let chatDataCache = {};
         let oldestMessageKey = null;
         let isFirstLoadEvent = true;
         let isLoadingHistory = false;
         let hasMoreHistory = true;
+        let isJsonViewerInitialized = false;
 
         const defaultFavicon = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%230c0c0c'/%3E%3Ctext x='2' y='12' fill='%2300ff00' font-family='monospace' font-size='12'%3E%3E%3C/text%3E%3C/svg%3E";
         const alertFavicon = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%230c0c0c'/%3E%3Ctext x='2' y='12' fill='%2300ff00' font-family='monospace' font-size='12'%3E%3E%3C/text%3E%3Ccircle cx='13' cy='3' r='3' fill='%23ff5555'/%3E%3C/svg%3E";
@@ -265,7 +287,8 @@
 
             get(q).then((snapshot) => {
                 if (!snapshot.exists()) {
-                    jsonViewer.innerText = "{ \"status\": \"Empty\" }";
+                    jsonViewer.innerHTML = '<div class="json-entry">"status": "Empty"</div>';
+                    isJsonViewerInitialized = true;
                 }
             });
 
@@ -278,8 +301,22 @@
                     isFirstLoadEvent = false;
                 }
 
-                chatDataCache[key] = data;
-                renderJsonViewer();
+                if (!isJsonViewerInitialized) {
+                    jsonViewer.innerHTML = '';
+                    isJsonViewerInitialized = true;
+                }
+
+                const div = document.createElement('div');
+                div.className = 'json-entry';
+                div.textContent = `"${key}": ${JSON.stringify(data, null, 2)},`;
+
+                const isAtBottom = monitorPanel.scrollHeight - monitorPanel.scrollTop - monitorPanel.clientHeight <= 50;
+
+                jsonViewer.appendChild(div);
+
+                if (isAtBottom && !isLoadingHistory) {
+                    monitorPanel.scrollTop = monitorPanel.scrollHeight;
+                }
 
                 if (!isInitialLoad) {
                     if (!data || (currentUser && data.uid === currentUser.uid)) return;
@@ -305,26 +342,8 @@
             }, 2000);
         }
 
-        function renderJsonViewer() {
-            const isAtBottom = monitorPanel.scrollHeight - monitorPanel.scrollTop - monitorPanel.clientHeight <= 50;
-
-            const sortedKeys = Object.keys(chatDataCache).sort();
-            const orderedCache = {};
-            for (const k of sortedKeys) {
-                orderedCache[k] = chatDataCache[k];
-            }
-
-            jsonViewer.innerText = JSON.stringify(orderedCache, null, 2);
-
-            if (isAtBottom && !isLoadingHistory) {
-                setTimeout(() => {
-                    monitorPanel.scrollTop = monitorPanel.scrollHeight;
-                }, 0);
-            }
-        }
-
         monitorPanel.addEventListener('scroll', async () => {
-            if (monitorPanel.scrollTop === 0 && !isLoadingHistory && hasMoreHistory) {
+            if (monitorPanel.scrollTop <= 5 && !isLoadingHistory && hasMoreHistory) {
                 await loadMoreHistory();
             }
         });
@@ -334,6 +353,7 @@
             isLoadingHistory = true;
 
             const oldScrollHeight = monitorPanel.scrollHeight;
+            const currentScrollTop = monitorPanel.scrollTop;
             printLog("Loading older messages...", 'sys');
 
             try {
@@ -350,22 +370,17 @@
                     if (messages.length > 0) {
                         oldestMessageKey = messages[0].key;
 
+                        const fragment = document.createDocumentFragment();
                         messages.forEach((msgObj) => {
-                            chatDataCache[msgObj.key] = msgObj.data;
+                            const div = document.createElement('div');
+                            div.className = 'json-entry';
+                            div.textContent = `"${msgObj.key}": ${JSON.stringify(msgObj.data, null, 2)},`;
+                            fragment.appendChild(div);
                         });
 
-                        const sortedKeys = Object.keys(chatDataCache).sort();
-                        const orderedCache = {};
-                        for (const k of sortedKeys) {
-                            orderedCache[k] = chatDataCache[k];
-                        }
-                        chatDataCache = orderedCache;
+                        jsonViewer.prepend(fragment);
 
-                        jsonViewer.innerText = JSON.stringify(chatDataCache, null, 2);
-
-                        setTimeout(() => {
-                            monitorPanel.scrollTop = monitorPanel.scrollHeight - oldScrollHeight;
-                        }, 0);
+                        monitorPanel.scrollTop = monitorPanel.scrollHeight - oldScrollHeight + currentScrollTop;
 
                         printLog(`Loaded ${messages.length} older messages.`, 'sys');
                     }

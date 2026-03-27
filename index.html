@@ -356,6 +356,7 @@
             flex-direction: column;
             gap: 12px;
             scroll-behavior: auto;
+            overflow-anchor: none;
         }
 
         .msg-row {
@@ -817,7 +818,7 @@
                     alertBadge.classList.remove('show');
                 }
 
-                if (chatArea.scrollTop === 0 && !isLoadingHistory && hasMoreHistory) {
+                if (chatArea.scrollTop <= 5 && !isLoadingHistory && hasMoreHistory) {
                     await loadMoreHistory();
                 }
             });
@@ -1049,6 +1050,7 @@
 
             const chatArea = document.getElementById('chat-area');
             const oldScrollHeight = chatArea.scrollHeight;
+            const currentScrollTop = chatArea.scrollTop;
 
             const loadingMsg = document.createElement('div');
             loadingMsg.className = 'system-msg';
@@ -1118,14 +1120,14 @@
                             fragment.appendChild(row);
                         });
 
-                        const systemMsg = chatArea.querySelector('.system-msg');
-                        if (systemMsg && systemMsg.parentNode === chatArea && systemMsg.nextSibling) {
-                            chatArea.insertBefore(fragment, systemMsg.nextSibling);
+                        const firstMsgRow = chatArea.querySelector('.msg-row');
+                        if (firstMsgRow) {
+                            chatArea.insertBefore(fragment, firstMsgRow);
                         } else {
                             chatArea.prepend(fragment);
                         }
 
-                        chatArea.scrollTop = chatArea.scrollHeight - oldScrollHeight;
+                        chatArea.scrollTop = chatArea.scrollHeight - oldScrollHeight + currentScrollTop;
                     }
 
                     if (messages.length < 100) {
