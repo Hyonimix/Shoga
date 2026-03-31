@@ -40,6 +40,11 @@
             --lia-bubble-text: #be185d;
             --lia-bubble-border: rgba(219, 39, 119, 0.25);
             --lia-shadow: 0 4px 15px rgba(219, 39, 119, 0.2), 0 0 15px rgba(219, 39, 119, 0.15);
+
+            --reply-bg: rgba(0, 0, 0, 0.05);
+            --reply-border: #7c3aed;
+            --context-menu-bg: #fff;
+            --context-menu-hover: #f0f0f0;
         }
 
         @media (prefers-color-scheme: dark) {
@@ -73,6 +78,11 @@
                 --lia-bubble-text: #fbcfe8;
                 --lia-bubble-border: rgba(219, 39, 119, 0.5);
                 --lia-shadow: 0 8px 25px rgba(0, 0, 0, 0.6), 0 0 20px rgba(219, 39, 119, 0.35);
+
+                --reply-bg: rgba(255, 255, 255, 0.1);
+                --reply-border: #a78bfa;
+                --context-menu-bg: #2c2c2c;
+                --context-menu-hover: #444;
             }
         }
 
@@ -357,6 +367,9 @@
             gap: 12px;
             scroll-behavior: auto;
             overflow-anchor: none;
+            padding-bottom: 20px;
+            touch-action: pan-y;
+            overflow-x: hidden;
         }
 
         .msg-row {
@@ -395,6 +408,7 @@
             display: flex;
             align-items: flex-end;
             gap: 4px;
+            position: relative;
         }
 
         .msg-row.me .bubble-container {
@@ -408,6 +422,9 @@
             line-height: 1.5;
             word-break: break-all;
             box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+            cursor: pointer;
+            user-select: none;
+            -webkit-touch-callout: none;
         }
 
         .msg-row.me .bubble {
@@ -422,6 +439,26 @@
             border-top-left-radius: 4px;
         }
 
+        /* Reply Block inside bubble */
+        .bubble-reply {
+            font-size: 12px;
+            background: var(--reply-bg);
+            border-left: 3px solid var(--reply-border);
+            padding: 4px 8px;
+            margin-bottom: 6px;
+            border-radius: 4px;
+            opacity: 0.9;
+            overflow: hidden;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+        }
+
+        .bubble-reply-nick {
+            font-weight: bold;
+            margin-bottom: 2px;
+        }
+
         .msg-row.lina-msg .bubble {
             background: var(--lina-bubble-bg);
             color: var(--lina-bubble-text);
@@ -432,7 +469,8 @@
             overflow: hidden;
         }
 
-        .msg-row.lina-msg .bubble::before {
+        .msg-row.lina-msg .bubble::before,
+        .msg-row.lia-msg .bubble::before {
             content: "";
             position: absolute;
             top: 0;
@@ -451,17 +489,6 @@
             position: relative;
             animation: lina-entry 0.6s ease-out;
             overflow: hidden;
-        }
-
-        .msg-row.lia-msg .bubble::before {
-            content: "";
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 1px;
-            background: rgba(255, 255, 255, 0.4);
-            pointer-events: none;
         }
 
         .badge-ai {
@@ -504,6 +531,38 @@
             text-align: right;
         }
 
+        /* Reactions */
+        .reactions-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            margin-top: 4px;
+            z-index: 1;
+        }
+
+        .msg-row.me .reactions-container {
+            justify-content: flex-end;
+        }
+
+        .reaction-badge {
+            background: var(--app-bg);
+            border: 1px solid var(--header-border);
+            padding: 2px 6px;
+            border-radius: 12px;
+            font-size: 11px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 3px;
+            user-select: none;
+        }
+
+        .reaction-badge.active {
+            background: rgba(124, 58, 237, 0.1);
+            border-color: #7c3aed;
+        }
+
         .system-msg {
             align-self: center;
             background: var(--system-msg-bg);
@@ -514,12 +573,69 @@
             margin: 10px 0;
         }
 
-        .input-area {
+        .input-wrapper {
             background: var(--input-area-bg);
+            border-top: 1px solid var(--header-border);
+            display: flex;
+            flex-direction: column;
+        }
+
+        #reply-preview {
+            display: none;
+            background: var(--input-bg);
+            padding: 8px 12px;
+            border-bottom: 1px solid var(--input-border);
+            font-size: 12px;
+            color: var(--sub-text-color);
+            position: relative;
+        }
+
+        #reply-preview.active {
+            display: block;
+            animation: slideUp 0.2s ease-out;
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(100%);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .reply-preview-nick {
+            font-weight: bold;
+            color: var(--text-color);
+            margin-bottom: 2px;
+        }
+
+        .reply-preview-text {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            padding-right: 20px;
+        }
+
+        .btn-close-reply {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            font-size: 16px;
+            color: var(--sub-text-color);
+            cursor: pointer;
+        }
+
+        .input-area {
             padding: 12px;
             display: flex;
             gap: 8px;
-            border-top: 1px solid var(--header-border);
         }
 
         #msg-input {
@@ -592,6 +708,67 @@
         #new-msg-alert.show {
             opacity: 1;
             pointer-events: auto;
+        }
+
+        /* Context Menu */
+        #context-menu {
+            position: fixed;
+            background: var(--context-menu-bg);
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+            padding: 8px 0;
+            z-index: 1000;
+            display: none;
+            border: 1px solid var(--input-border);
+            min-width: 150px;
+        }
+
+        #context-menu.show {
+            display: block;
+        }
+
+        .cm-item {
+            padding: 10px 16px;
+            font-size: 14px;
+            color: var(--text-color);
+            cursor: pointer;
+            transition: background 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .cm-item:hover {
+            background: var(--context-menu-hover);
+        }
+
+        .cm-reactions {
+            display: flex;
+            gap: 10px;
+            padding: 8px 16px;
+            border-bottom: 1px solid var(--header-border);
+            justify-content: center;
+        }
+
+        .cm-emoji {
+            font-size: 20px;
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+
+        .cm-emoji:hover {
+            transform: scale(1.2);
+        }
+
+        /* Backdrop for mobile to catch touches */
+        #cm-backdrop {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 999;
+            display: none;
         }
     </style>
 </head>
@@ -707,22 +884,47 @@
                 <span>새 메시지</span>
             </div>
 
-            <div class="input-area">
-                <input type="text" id="msg-input" placeholder="메시지를 입력하세요"
-                    onkeypress="if(event.key==='Enter') sendMessage()">
-                <button id="send-btn">
-                    <svg viewBox="0 0 24 24">
-                        <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"></path>
-                    </svg>
-                </button>
+            <div class="input-wrapper">
+                <div id="reply-preview">
+                    <div class="reply-preview-nick" id="reply-preview-nick">닉네임</div>
+                    <div class="reply-preview-text" id="reply-preview-text">메시지 내용...</div>
+                    <button class="btn-close-reply" onclick="cancelReply()">✕</button>
+                </div>
+                <div class="input-area">
+                    <input type="text" id="msg-input" placeholder="메시지를 입력하세요"
+                        onkeypress="if(event.key==='Enter') sendMessage()">
+                    <button id="send-btn">
+                        <svg viewBox="0 0 24 24">
+                            <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"></path>
+                        </svg>
+                    </button>
+                </div>
             </div>
         </div>
     </div>
 
+    <!-- Context Menu Elements -->
+    <div id="cm-backdrop" onclick="closeContextMenu()"></div>
+    <div id="context-menu">
+        <div class="cm-reactions">
+            <span class="cm-emoji" onclick="submitReaction('👍')">👍</span>
+            <span class="cm-emoji" onclick="submitReaction('❤️')">❤️</span>
+            <span class="cm-emoji" onclick="submitReaction('😂')">😂</span>
+            <span class="cm-emoji" onclick="submitReaction('😮')">😮</span>
+            <span class="cm-emoji" onclick="submitReaction('😢')">😢</span>
+            <span class="cm-emoji" onclick="submitReaction('🥺')">🥺</span>
+        </div>
+        <div class="cm-item" onclick="triggerReply()">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+                <path d="M10 9V5l-7 7 7 7v-4.1c5 0 8.5 1.6 11 5.1-1-5-4-10-11-11z" />
+            </svg>
+            답장
+        </div>
+    </div>
+
     <script type="module">
-        // Firebase Auth & Database Module
         import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getDatabase, ref, push, onChildAdded, serverTimestamp, query, limitToLast, orderByKey, endBefore, get } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+        import { getDatabase, ref, push, onChildAdded, onChildChanged, serverTimestamp, query, limitToLast, orderByKey, endBefore, get } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
         import { getAuth, signInAnonymously, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
         const baseConfig = {
@@ -747,7 +949,21 @@
         let isLoadingHistory = false;
         let hasMoreHistory = true;
 
-        // Favicon Alert Setup
+        let currentReplyData = null;
+        let currentContextMenuKey = null;
+
+        const reactionsState = {};
+
+        const EMOJI_MAP = {
+            '👍': 'Emoji_Thumbsup',
+            '❤️': 'Emoji_Heart',
+            '😂': 'Emoji_Joy',
+            '😮': 'Emoji_Surprised',
+            '😢': 'Emoji_Sad',
+            '🥺': 'Emoji_Pleading'
+        };
+        const REVERSE_EMOJI_MAP = Object.fromEntries(Object.entries(EMOJI_MAP).map(([k, v]) => [v, k]));
+
         const defaultFavicon = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0%25' stop-color='%237c3aed'/%3E%3Cstop offset='100%25' stop-color='%234ca1af'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='100' height='100' rx='24' fill='url(%23g)'/%3E%3Cg opacity='0.95'%3E%3Cpath d='M 45 25 H 55 V 43 L 73 71 V 75 H 27 V 71 L 45 43 Z' fill='%23ffffff' stroke='%23ffffff' stroke-width='8' stroke-linejoin='round'/%3E%3Crect x='39' y='20' width='22' height='6' rx='3' fill='%23ffffff'/%3E%3C/g%3E%3Cpath d='M 38 56 C 38 49, 43 44, 50 44 C 57 44, 62 49, 62 56 C 62 63, 57 68, 50 68 H 44 L 38 74 V 66 C 38 64, 38 61, 38 56 Z' fill='url(%23g)'/%3E%3Ccircle cx='50' cy='34' r='2.5' fill='url(%23g)'/%3E%3Ccircle cx='54' cy='27' r='1.5' fill='url(%23g)'/%3E%3Ccircle cx='50' cy='11' r='3' fill='%23ffffff'/%3E%3Ccircle cx='57' cy='5' r='1.5' fill='%23ffffff'/%3E%3Ccircle cx='43' cy='15' r='2' fill='%23ffffff'/%3E%3C/svg%3E";
         const alertFavicon = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0%25' stop-color='%237c3aed'/%3E%3Cstop offset='100%25' stop-color='%234ca1af'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='100' height='100' rx='24' fill='url(%23g)'/%3E%3Cg opacity='0.95'%3E%3Cpath d='M 45 25 H 55 V 43 L 73 71 V 75 H 27 V 71 L 45 43 Z' fill='%23ffffff' stroke='%23ffffff' stroke-width='8' stroke-linejoin='round'/%3E%3Crect x='39' y='20' width='22' height='6' rx='3' fill='%23ffffff'/%3E%3C/g%3E%3Cpath d='M 38 56 C 38 49, 43 44, 50 44 C 57 44, 62 49, 62 56 C 62 63, 57 68, 50 68 H 44 L 38 74 V 66 C 38 64, 38 61, 38 56 Z' fill='url(%23g)'/%3E%3Ccircle cx='50' cy='34' r='2.5' fill='url(%23g)'/%3E%3Ccircle cx='54' cy='27' r='1.5' fill='url(%23g)'/%3E%3Ccircle cx='50' cy='11' r='3' fill='%23ffffff'/%3E%3Ccircle cx='57' cy='5' r='1.5' fill='%23ffffff'/%3E%3Ccircle cx='43' cy='15' r='2' fill='%23ffffff'/%3E%3Ccircle cx='85' cy='15' r='14' fill='%23ff5555'/%3E%3C/svg%3E";
 
@@ -763,7 +979,6 @@
             if (document.visibilityState === 'visible') setFaviconAlert(false);
         });
 
-        // Core Initialization
         window.addEventListener('DOMContentLoaded', () => {
             const savedNick = localStorage.getItem('shoga_user_nick');
             if (savedNick) {
@@ -786,7 +1001,233 @@
 
             setupSendButton();
             setupScrollListener();
+            setupContextMenuListeners();
+            setupSwipeToReplyListeners();
         });
+
+        function setupContextMenuListeners() {
+            const chatArea = document.getElementById('chat-area');
+            let longPressTimer;
+
+            chatArea.addEventListener('contextmenu', (e) => {
+                const bubble = e.target.closest('.bubble');
+                if (bubble) {
+                    e.preventDefault();
+                    const msgRow = bubble.closest('.msg-row');
+                    if (msgRow) {
+                        showContextMenu(e.pageX, e.pageY, msgRow.dataset.key);
+                    }
+                }
+            });
+
+            chatArea.addEventListener('touchstart', (e) => {
+                const bubble = e.target.closest('.bubble');
+                if (bubble) {
+                    longPressTimer = setTimeout(() => {
+                        const msgRow = bubble.closest('.msg-row');
+                        if (msgRow) {
+                            const touch = e.touches[0];
+                            showContextMenu(touch.pageX, touch.pageY, msgRow.dataset.key);
+                        }
+                    }, 500);
+                }
+            }, { passive: true });
+
+            chatArea.addEventListener('touchend', () => clearTimeout(longPressTimer));
+            chatArea.addEventListener('touchmove', () => clearTimeout(longPressTimer));
+            chatArea.addEventListener('touchcancel', () => clearTimeout(longPressTimer));
+        }
+
+        function setupSwipeToReplyListeners() {
+            const chatArea = document.getElementById('chat-area');
+            let startX = 0;
+            let startY = 0;
+            let currentX = 0;
+            let isSwiping = false;
+            let swipedRow = null;
+            let swipedBubble = null;
+            const threshold = 60;
+
+            chatArea.addEventListener('touchstart', (e) => {
+                const bubble = e.target.closest('.bubble');
+                if (!bubble) return;
+
+                const msgRow = bubble.closest('.msg-row');
+                if (!msgRow) return;
+
+                startX = e.touches[0].clientX;
+                startY = e.touches[0].clientY;
+                currentX = startX;
+                isSwiping = false;
+                swipedRow = msgRow;
+                swipedBubble = bubble;
+                swipedBubble.style.transition = 'none';
+            }, { passive: true });
+
+            chatArea.addEventListener('touchmove', (e) => {
+                if (!swipedBubble) return;
+
+                currentX = e.touches[0].clientX;
+                const currentY = e.touches[0].clientY;
+                const diffX = currentX - startX;
+                const diffY = currentY - startY;
+
+                if (!isSwiping && Math.abs(diffY) > Math.abs(diffX)) {
+                    swipedBubble.style.transition = 'transform 0.2s ease-out';
+                    swipedBubble.style.transform = 'translateX(0)';
+                    swipedBubble = null;
+                    return;
+                }
+
+                if (diffX > 0 && diffX < 120) {
+                    isSwiping = true;
+                    swipedBubble.style.transform = `translateX(${diffX}px)`;
+                }
+            }, { passive: true });
+
+            chatArea.addEventListener('touchend', (e) => {
+                if (!swipedBubble) return;
+
+                const diffX = currentX - startX;
+
+                swipedBubble.style.transition = 'transform 0.2s ease-out';
+                swipedBubble.style.transform = 'translateX(0)';
+
+                if (isSwiping && diffX > threshold) {
+                    triggerReplyFromRow(swipedRow);
+                }
+
+                swipedBubble = null;
+                isSwiping = false;
+            });
+
+            chatArea.addEventListener('touchcancel', () => {
+                if (swipedBubble) {
+                    swipedBubble.style.transition = 'transform 0.2s ease-out';
+                    swipedBubble.style.transform = 'translateX(0)';
+                    swipedBubble = null;
+                }
+                isSwiping = false;
+            });
+        }
+
+        function showContextMenu(x, y, msgKey) {
+            if (!msgKey) return;
+            currentContextMenuKey = msgKey;
+
+            const cm = document.getElementById('context-menu');
+            const backdrop = document.getElementById('cm-backdrop');
+
+            cm.style.display = 'block';
+            backdrop.style.display = 'block';
+
+            const winWidth = window.innerWidth;
+            const winHeight = window.innerHeight;
+
+            if (x + cm.offsetWidth > winWidth) x = winWidth - cm.offsetWidth - 10;
+            if (y + cm.offsetHeight > winHeight) y = winHeight - cm.offsetHeight - 10;
+
+            cm.style.left = `${x}px`;
+            cm.style.top = `${y}px`;
+        }
+
+        window.closeContextMenu = () => {
+            document.getElementById('context-menu').style.display = 'none';
+            document.getElementById('cm-backdrop').style.display = 'none';
+            currentContextMenuKey = null;
+        }
+
+        function triggerReplyFromRow(msgRow) {
+            if (!msgRow) return;
+            const key = msgRow.dataset.key;
+            if (!key) return;
+
+            let nick = msgRow.dataset.nick ? formatDisplayNick(msgRow.dataset.nick) : "Reply";
+            if (msgRow.classList.contains('me')) nick = formatDisplayNick(myNick);
+
+            const bubble = msgRow.querySelector('.bubble');
+            let clone = bubble.cloneNode(true);
+            const replyBlock = clone.querySelector('.bubble-reply');
+            if (replyBlock) replyBlock.remove();
+
+            const text = clone.innerText.trim();
+
+            setReply(key, nick, text);
+        }
+
+        window.triggerReply = () => {
+            if (!currentContextMenuKey) return;
+            const msgRow = document.querySelector(`.msg-row[data-key="${currentContextMenuKey}"]`);
+            triggerReplyFromRow(msgRow);
+            closeContextMenu();
+        };
+
+        function setReply(key, nick, text) {
+            currentReplyData = { key, nick, text };
+            document.getElementById('reply-preview-nick').innerText = nick;
+            document.getElementById('reply-preview-text').innerText = text;
+            document.getElementById('reply-preview').classList.add('active');
+            document.getElementById('msg-input').focus();
+        }
+
+        window.cancelReply = () => {
+            currentReplyData = null;
+            document.getElementById('reply-preview').classList.remove('active');
+        }
+
+        function updateReactionState(msgKey, emojiCode, uid, isAdded) {
+            if (!reactionsState[msgKey]) reactionsState[msgKey] = {};
+            if (!reactionsState[msgKey][emojiCode]) reactionsState[msgKey][emojiCode] = {};
+
+            if (isAdded) {
+                reactionsState[msgKey][emojiCode][uid] = true;
+            } else {
+                delete reactionsState[msgKey][emojiCode][uid];
+            }
+        }
+
+        window.submitReaction = async (emoji) => {
+            if (!currentContextMenuKey || !user) return;
+            const key = currentContextMenuKey;
+            closeContextMenu();
+            await window.toggleReaction(key, emoji);
+        };
+
+        window.toggleReaction = async (msgKey, emoji) => {
+            if (!user) return;
+
+            const codeName = EMOJI_MAP[emoji] || emoji;
+
+            let isReacted = false;
+            if (reactionsState[msgKey] && reactionsState[msgKey][codeName] && reactionsState[msgKey][codeName][user.uid]) {
+                isReacted = true;
+            }
+
+            const willReact = !isReacted;
+
+            updateReactionState(msgKey, codeName, user.uid, willReact);
+            const container = document.getElementById(`reactions-${msgKey}`);
+            if (container) {
+                container.innerHTML = renderReactions(msgKey);
+            }
+
+            const chatRef = ref(db, 'chats/' + currentRoomId);
+            push(chatRef, {
+                type: 'reaction',
+                targetKey: msgKey,
+                emoji: codeName,
+                uid: user.uid,
+                isAdded: willReact,
+                time: serverTimestamp()
+            }).catch(e => {
+                console.error("Reaction push failed", e);
+                updateReactionState(msgKey, codeName, user.uid, isReacted);
+                if (container) {
+                    container.innerHTML = renderReactions(msgKey);
+                }
+                alert("리액션 전송에 실패했습니다.");
+            });
+        };
 
         window.changeRoomId = () => {
             const newRoom = prompt("입장할 Room ID를 입력하세요:", currentRoomId);
@@ -1021,6 +1462,64 @@
             }
         }
 
+        function createMessageHTML(key, data, isConsecutive) {
+            const isMe = user && (data.uid === user.uid);
+            const isLina = data.nick === '리나';
+            const isLia = data.nick === '리아';
+            const nickColor = getNickColor(data.nick);
+            const timeStr = data.time ? formatTime(data.time) : '';
+
+            let html = '';
+            if (!isMe && !isConsecutive) {
+                html += `<span class="sender-name" style="color: ${nickColor}">
+                            ${escapeHtml(formatDisplayNick(data.nick))}
+                            ${(isLina || isLia) ? '<span class="badge-ai">AI</span>' : ''}
+                         </span>`;
+            }
+
+            html += `<div class="bubble-container">`;
+
+            // Re-construct bubble inner content
+            html += `  <div class="bubble">`;
+            if (data.replyTo) {
+                html += `<div class="bubble-reply">
+                            <div class="bubble-reply-nick">${escapeHtml(formatDisplayNick(data.replyTo.nick))}</div>
+                            <div class="bubble-reply-text">${escapeHtml(data.replyTo.text)}</div>
+                         </div>`;
+            }
+            html += `${escapeHtml(data.text)}</div>`;
+
+            // Container for time and reactions
+            html += `<div style="display: flex; flex-direction: column; align-items: ${isMe ? 'flex-end' : 'flex-start'};">`;
+            html += `  <span class="msg-time" style="${(isConsecutive && data.hideTime) ? 'display:none;' : ''}">${timeStr}</span>`;
+            html += `  <div class="reactions-container" id="reactions-${key}">${renderReactions(key)}</div>`;
+            html += `</div>`;
+
+            html += `</div>`;
+
+            return { html, isMe, isLina, isLia };
+        }
+
+        function renderReactions(msgKey) {
+            const state = reactionsState[msgKey] || {};
+            let html = '';
+
+            for (const [codeName, usersObj] of Object.entries(state)) {
+                if (!usersObj) continue;
+                const userKeys = Object.keys(usersObj);
+                const count = userKeys.length;
+                if (count === 0) continue;
+                const amIReacted = user && userKeys.includes(user.uid);
+
+                const displayEmoji = REVERSE_EMOJI_MAP[codeName] || codeName;
+
+                html += `<div class="reaction-badge ${amIReacted ? 'active' : ''}" onclick="toggleReaction('${msgKey}', '${displayEmoji}')">
+                            ${displayEmoji} <span>${count > 1 ? count : ''}</span>
+                         </div>`;
+            }
+            return html;
+        }
+
         function loadChat() {
             const chatArea = document.getElementById('chat-area');
             chatArea.innerHTML = `<div class="system-msg" id="auth-success-msg">인증 성공! 닉네임:[${formatDisplayNick(myNick)}]</div>`;
@@ -1045,7 +1544,45 @@
                     isFirstLoadEvent = false;
                 }
 
-                if (data) drawMessage(data);
+                if (!data) return;
+
+                if (data.type === 'reaction') {
+                    updateReactionState(data.targetKey, data.emoji, data.uid, data.isAdded);
+                    const container = document.getElementById(`reactions-${data.targetKey}`);
+                    if (container) {
+                        container.innerHTML = renderReactions(data.targetKey);
+                    }
+                    return;
+                }
+
+                if (data.reactions) {
+                    for (const [emojiCode, users] of Object.entries(data.reactions)) {
+                        for (const [uid, val] of Object.entries(users)) {
+                            if (val) updateReactionState(key, emojiCode, uid, true);
+                        }
+                    }
+                }
+
+                drawMessage(key, data);
+            });
+
+            onChildChanged(q, (snapshot) => {
+                const data = snapshot.val();
+                const key = snapshot.key;
+
+                if (data && data.type !== 'reaction') {
+                    if (data.reactions) {
+                        for (const [emojiCode, users] of Object.entries(data.reactions)) {
+                            for (const [uid, val] of Object.entries(users)) {
+                                if (val) updateReactionState(key, emojiCode, uid, true);
+                            }
+                        }
+                    }
+                    const reactionsContainer = document.getElementById(`reactions-${key}`);
+                    if (reactionsContainer) {
+                        reactionsContainer.innerHTML = renderReactions(key);
+                    }
+                }
             });
         }
 
@@ -1084,9 +1621,21 @@
 
                         messages.forEach((msgObj) => {
                             const data = msgObj.data;
-                            const isMe = user && (data.uid === user.uid);
-                            const isLina = data.nick === '리나';
-                            const isLia = data.nick === '리아';
+                            const key = msgObj.key;
+
+                            if (data.type === 'reaction') {
+                                updateReactionState(data.targetKey, data.emoji, data.uid, data.isAdded);
+                                return;
+                            }
+
+                            if (data.reactions) {
+                                for (const [emojiCode, users] of Object.entries(data.reactions)) {
+                                    for (const [uid, val] of Object.entries(users)) {
+                                        if (val) updateReactionState(key, emojiCode, uid, true);
+                                    }
+                                }
+                            }
+
                             const currentSenderId = data.uid || data.nick;
                             const timeStr = data.time ? formatTime(data.time) : '';
 
@@ -1103,25 +1652,14 @@
                             chunkLastSenderId = currentSenderId;
                             chunkLastMessageTimeStr = timeStr;
 
+                            const { html, isMe, isLina, isLia } = createMessageHTML(key, data, isConsecutive);
+
                             const row = document.createElement('div');
+                            row.dataset.key = key;
+                            row.dataset.nick = data.nick || '';
                             row.className = `msg-row ${isMe ? 'me' : 'other'} ${isLina ? 'lina-msg' : ''} ${isLia ? 'lia-msg' : ''} ${isConsecutive ? 'consecutive' : ''}`;
-
-                            const nickColor = getNickColor(data.nick);
-
-                            let html = '';
-                            if (!isMe && !isConsecutive) {
-                                html += `<span class="sender-name" style="color: ${nickColor}">
-                                            ${escapeHtml(formatDisplayNick(data.nick))}
-                                            ${(isLina || isLia) ? '<span class="badge-ai">AI</span>' : ''}
-                                         </span>`;
-                            }
-
-                            html += `<div class="bubble-container">`;
-                            html += `  <div class="bubble">${escapeHtml(data.text)}</div>`;
-                            html += `  <span class="msg-time">${timeStr}</span>`;
-                            html += `</div>`;
-
                             row.innerHTML = html;
+
                             fragment.appendChild(row);
                         });
 
@@ -1159,12 +1697,9 @@
             return `${ampm} ${hours}:${strMinutes}`;
         }
 
-        function drawMessage(data) {
+        function drawMessage(key, data) {
             const chatArea = document.getElementById('chat-area');
             const alertBadge = document.getElementById('new-msg-alert');
-            const isMe = user && (data.uid === user.uid);
-            const isLina = data.nick === '리나';
-            const isLia = data.nick === '리아';
 
             const currentSenderId = data.uid || data.nick;
             const timeStr = data.time ? formatTime(data.time) : '';
@@ -1177,7 +1712,10 @@
                 if (lastRow && lastRow.classList.contains('msg-row')) {
                     const lastTimeEl = lastRow.querySelector('.msg-time');
                     if (lastTimeEl) lastTimeEl.style.display = 'none';
+                    data.hideTime = true;
                 }
+            } else {
+                data.hideTime = false;
             }
 
             lastSenderId = currentSenderId;
@@ -1186,25 +1724,14 @@
             const threshold = 50;
             const wasAtBottom = chatArea.scrollHeight - chatArea.scrollTop - chatArea.clientHeight <= threshold;
 
+            const { html, isMe, isLina, isLia } = createMessageHTML(key, data, isConsecutive && isSameTime);
+
             const row = document.createElement('div');
-            row.className = `msg-row ${isMe ? 'me' : 'other'} ${isLina ? 'lina-msg' : ''} ${isLia ? 'lia-msg' : ''} ${isConsecutive ? 'consecutive' : ''}`;
-
-            const nickColor = getNickColor(data.nick);
-
-            let html = '';
-            if (!isMe && !isConsecutive) {
-                html += `<span class="sender-name" style="color: ${nickColor}">
-                            ${escapeHtml(formatDisplayNick(data.nick))}
-                            ${(isLina || isLia) ? '<span class="badge-ai">AI</span>' : ''}
-                         </span>`;
-            }
-
-            html += `<div class="bubble-container">`;
-            html += `  <div class="bubble">${escapeHtml(data.text)}</div>`;
-            html += `  <span class="msg-time">${timeStr}</span>`;
-            html += `</div>`;
-
+            row.dataset.key = key;
+            row.dataset.nick = data.nick || '';
+            row.className = `msg-row ${isMe ? 'me' : 'other'} ${isLina ? 'lina-msg' : ''} ${isLia ? 'lia-msg' : ''} ${(isConsecutive && isSameTime) ? 'consecutive' : ''}`;
             row.innerHTML = html;
+
             chatArea.appendChild(row);
 
             if (isInitialLoad) {
@@ -1237,31 +1764,43 @@
             isInitialLoad = false;
         }, 2000);
 
+        let isSending = false;
         window.sendMessage = () => {
+            if (isSending) return;
             const input = document.getElementById('msg-input');
             const btn = document.getElementById('send-btn');
             const text = input.value.trim();
             if (!text || !user) return;
 
-            input.disabled = true;
+            isSending = true;
             btn.disabled = true;
             btn.style.opacity = '0.5';
 
+            input.value = '';
+
             const chatRef = ref(db, 'chats/' + currentRoomId);
-            push(chatRef, {
+
+            const payload = {
                 uid: user.uid,
                 nick: myNick,
                 text: text,
                 time: serverTimestamp()
-            }).then(() => {
-                input.value = '';
+            };
+
+            if (currentReplyData) {
+                payload.replyTo = currentReplyData;
+                cancelReply();
+            }
+
+            push(chatRef, payload).then(() => {
             }).catch(() => {
                 alert("전송 실패");
+                input.value = text;
             }).finally(() => {
-                input.disabled = false;
                 btn.disabled = false;
                 btn.style.opacity = '1';
                 input.focus();
+                isSending = false;
             });
         };
 

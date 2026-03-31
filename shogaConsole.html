@@ -94,6 +94,10 @@
             color: var(--accent-color);
         }
 
+        .log-line.info {
+            color: #4ca1af;
+        }
+
         .input-line {
             display: flex;
             align-items: center;
@@ -169,8 +173,9 @@
 
     <div id="terminal-panel">
         <div id="log-area">
-            <div class="log-line sys">Shoga CLI Transmitter v1.3.0 initialized.</div>
+            <div class="log-line sys">Shoga CLI Transmitter v1.4.0 initialized.</div>
             <div class="log-line sys">Mode: API Key Only (Anonymous)</div>
+            <div class="log-line info">Commands: /clear | /reply [id] [text] | /react [id] [emoji]</div>
         </div>
         <div class="input-line">
             <span class="prompt">shoga@cli:~$</span>
@@ -180,7 +185,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getDatabase, ref, push, onChildAdded, serverTimestamp, query, limitToLast, orderByKey, endBefore, get } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+        import { getDatabase, ref, push, onChildAdded, onChildChanged, serverTimestamp, query, limitToLast, orderByKey, endBefore, get } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
         const monitorPanel = document.getElementById('monitor-panel');
@@ -232,6 +237,18 @@
         let hasMoreHistory = true;
         let isJsonViewerInitialized = false;
 
+        const reactionsState = {};
+
+        const EMOJI_MAP = {
+            '👍': 'Emoji_Thumbsup',
+            '❤️': 'Emoji_Heart',
+            '😂': 'Emoji_Joy',
+            '😮': 'Emoji_Surprised',
+            '😢': 'Emoji_Sad',
+            '🥺': 'Emoji_Pleading'
+        };
+        const REVERSE_EMOJI_MAP = Object.fromEntries(Object.entries(EMOJI_MAP).map(([k, v]) => [v, k]));
+
         const defaultFavicon = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%230c0c0c'/%3E%3Ctext x='2' y='12' fill='%2300ff00' font-family='monospace' font-size='12'%3E%3E%3C/text%3E%3C/svg%3E";
         const alertFavicon = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%230c0c0c'/%3E%3Ctext x='2' y='12' fill='%2300ff00' font-family='monospace' font-size='12'%3E%3E%3C/text%3E%3Ccircle cx='13' cy='3' r='3' fill='%23ff5555'/%3E%3C/svg%3E";
 
@@ -281,6 +298,29 @@
             }
         });
 
+        function upsertJsonEntry(key, data) {
+            let el = document.getElementById(`json-${key}`);
+            if (!el) {
+                el = document.createElement('div');
+                el.id = `json-${key}`;
+                el.className = 'json-entry';
+                jsonViewer.appendChild(el);
+            }
+            el.textContent = `"${key}": ${JSON.stringify(data, null, 2)},`;
+            return el;
+        }
+
+        function updateReactionState(msgKey, emojiCode, uid, isAdded) {
+            if (!reactionsState[msgKey]) reactionsState[msgKey] = {};
+            if (!reactionsState[msgKey][emojiCode]) reactionsState[msgKey][emojiCode] = {};
+
+            if (isAdded) {
+                reactionsState[msgKey][emojiCode][uid] = true;
+            } else {
+                delete reactionsState[msgKey][emojiCode][uid];
+            }
+        }
+
         function startMonitoring() {
             const roomRef = ref(db, `chats/${GLOBAL_ROOM_ID}`);
             const q = query(roomRef, limitToLast(500));
@@ -306,16 +346,26 @@
                     isJsonViewerInitialized = true;
                 }
 
-                const div = document.createElement('div');
-                div.className = 'json-entry';
-                div.textContent = `"${key}": ${JSON.stringify(data, null, 2)},`;
-
                 const isAtBottom = monitorPanel.scrollHeight - monitorPanel.scrollTop - monitorPanel.clientHeight <= 50;
-
-                jsonViewer.appendChild(div);
+                upsertJsonEntry(key, data);
 
                 if (isAtBottom && !isLoadingHistory) {
                     monitorPanel.scrollTop = monitorPanel.scrollHeight;
+                }
+
+                if (data && data.type === 'reaction') {
+                    updateReactionState(data.targetKey, data.emoji, data.uid, data.isAdded);
+                    const displayEmoji = REVERSE_EMOJI_MAP[data.emoji] || data.emoji;
+                    printLog(`[Reaction Event] UID:${data.uid} ${data.isAdded ? 'added' : 'removed'} [${displayEmoji}] on msg(${data.targetKey})`, 'info');
+                    return;
+                }
+
+                if (data && data.reactions) {
+                    for (const [emojiCode, users] of Object.entries(data.reactions)) {
+                        for (const [uid, val] of Object.entries(users)) {
+                            if (val) updateReactionState(key, emojiCode, uid, true);
+                        }
+                    }
                 }
 
                 if (!isInitialLoad) {
@@ -332,6 +382,20 @@
                                 window.focus();
                                 notification.close();
                             };
+                        }
+                    }
+                }
+            });
+
+            onChildChanged(q, (snapshot) => {
+                const key = snapshot.key;
+                const data = snapshot.val();
+                upsertJsonEntry(key, data);
+
+                if (data && data.type !== 'reaction' && data.reactions) {
+                    for (const [emojiCode, users] of Object.entries(data.reactions)) {
+                        for (const [uid, val] of Object.entries(users)) {
+                            if (val) updateReactionState(key, emojiCode, uid, true);
                         }
                     }
                 }
@@ -372,7 +436,18 @@
 
                         const fragment = document.createDocumentFragment();
                         messages.forEach((msgObj) => {
+                            if (msgObj.data && msgObj.data.type === 'reaction') {
+                                updateReactionState(msgObj.data.targetKey, msgObj.data.emoji, msgObj.data.uid, msgObj.data.isAdded);
+                            } else if (msgObj.data && msgObj.data.reactions) {
+                                for (const [emojiCode, users] of Object.entries(msgObj.data.reactions)) {
+                                    for (const [uid, val] of Object.entries(users)) {
+                                        if (val) updateReactionState(msgObj.key, emojiCode, uid, true);
+                                    }
+                                }
+                            }
+
                             const div = document.createElement('div');
+                            div.id = `json-${msgObj.key}`;
                             div.className = 'json-entry';
                             div.textContent = `"${msgObj.key}": ${JSON.stringify(msgObj.data, null, 2)},`;
                             fragment.appendChild(div);
@@ -399,25 +474,30 @@
             isLoadingHistory = false;
         }
 
-        async function sendMessage(text) {
+        async function sendMessage(text, replyTo = null) {
             if (!currentUser) return;
 
             const chatRef = ref(db, `chats/${GLOBAL_ROOM_ID}`);
             try {
-                await push(chatRef, {
+                const payload = {
                     uid: currentUser.uid,
                     nick: FIXED_NICK,
                     text: text,
                     time: serverTimestamp()
-                });
+                };
+                if (replyTo) payload.replyTo = replyTo;
+
+                await push(chatRef, payload);
                 printLog(`Sent: ${text}`, 'success');
             } catch (e) {
                 printLog(`Error: ${e.message}`, 'err');
             }
         }
 
+        let isCmdSending = false;
         cmdInput.addEventListener('keydown', async (e) => {
             if (e.key === 'Enter') {
+                if (isCmdSending) return;
                 const val = cmdInput.value.trim();
                 if (!val) return;
 
@@ -425,14 +505,87 @@
                     logArea.innerHTML = '';
                     printLog("Console cleared.", 'sys');
                     cmdInput.value = '';
-                } else {
-                    cmdInput.disabled = true;
+                }
+                else if (val.startsWith('/reply ')) {
+                    const parts = val.split(' ');
+                    if (parts.length >= 3) {
+                        const targetKey = parts[1];
+                        const msgText = parts.slice(2).join(' ');
+
+                        isCmdSending = true;
+                        cmdInput.style.opacity = '0.5';
+                        cmdInput.value = '';
+
+                        try {
+                            const targetRef = ref(db, `chats/${GLOBAL_ROOM_ID}/${targetKey}`);
+                            const snap = await get(targetRef);
+                            if (snap.exists()) {
+                                const targetData = snap.val();
+                                await sendMessage(msgText, {
+                                    key: targetKey,
+                                    nick: targetData.nick,
+                                    text: targetData.text
+                                });
+                            } else {
+                                printLog(`Error: Target message [${targetKey}] not found.`, 'err');
+                            }
+                        } catch (err) {
+                            printLog(`Error: ${err.message}`, 'err');
+                        }
+
+                        isCmdSending = false;
+                        cmdInput.style.opacity = '1';
+                        cmdInput.focus();
+                    } else {
+                        printLog("Usage: /reply [message_id] [text]", 'err');
+                    }
+                }
+                else if (val.startsWith('/react ')) {
+                    const parts = val.split(' ');
+                    if (parts.length === 3) {
+                        const targetKey = parts[1];
+                        const emoji = parts[2];
+                        const codeName = EMOJI_MAP[emoji] || emoji;
+
+                        isCmdSending = true;
+                        cmdInput.style.opacity = '0.5';
+                        cmdInput.value = '';
+
+                        let isReacted = false;
+                        if (reactionsState[targetKey] && reactionsState[targetKey][codeName] && reactionsState[targetKey][codeName][currentUser.uid]) {
+                            isReacted = true;
+                        }
+
+                        const willReact = !isReacted;
+
+                        push(ref(db, `chats/${GLOBAL_ROOM_ID}`), {
+                            type: 'reaction',
+                            targetKey: targetKey,
+                            emoji: codeName,
+                            uid: currentUser.uid,
+                            isAdded: willReact,
+                            time: serverTimestamp()
+                        }).then(() => {
+                            printLog(`Sent reaction event: ${willReact ? 'Add' : 'Remove'} [${emoji}] on [${targetKey}]`, 'success');
+                        }).catch(err => {
+                            printLog(`Error: ${err.message}`, 'err');
+                        });
+
+                        isCmdSending = false;
+                        cmdInput.style.opacity = '1';
+                        cmdInput.focus();
+                    } else {
+                        printLog("Usage: /react [message_id] [emoji]", 'err');
+                    }
+                }
+                else {
+                    isCmdSending = true;
                     cmdInput.style.opacity = '0.5';
+                    cmdInput.value = '';
 
                     await sendMessage(val);
 
-                    cmdInput.value = '';
-                    cmdInput.disabled = false;
+                    isCmdSending = false;
                     cmdInput.style.opacity = '1';
                     cmdInput.focus();
                 }
@@ -440,7 +593,10 @@
         });
 
         document.body.addEventListener('click', () => {
-            if (document.activeElement !== cmdInput) cmdInput.focus();
+            const sel = window.getSelection();
+            if (document.activeElement !== cmdInput && (!sel || sel.toString().length === 0)) {
+                cmdInput.focus();
+            }
         });
     </script>
 </body>
