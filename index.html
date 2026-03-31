@@ -903,7 +903,6 @@
         </div>
     </div>
 
-    <!-- Context Menu Elements -->
     <div id="cm-backdrop" onclick="closeContextMenu()"></div>
     <div id="context-menu">
         <div class="cm-reactions">
@@ -1213,10 +1212,12 @@
 
             const chatRef = ref(db, 'chats/' + currentRoomId);
             push(chatRef, {
+                uid: user.uid,
+                nick: myNick,
+                text: 'reaction',
                 type: 'reaction',
                 targetKey: msgKey,
                 emoji: codeName,
-                uid: user.uid,
                 isAdded: willReact,
                 time: serverTimestamp()
             }).catch(e => {
