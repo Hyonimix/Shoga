@@ -559,10 +559,12 @@
                         const willReact = !isReacted;
 
                         push(ref(db, `chats/${GLOBAL_ROOM_ID}`), {
+                            uid: currentUser.uid,
+                            nick: FIXED_NICK,
+                            text: 'reaction',
                             type: 'reaction',
                             targetKey: targetKey,
                             emoji: codeName,
-                            uid: currentUser.uid,
                             isAdded: willReact,
                             time: serverTimestamp()
                         }).then(() => {
