@@ -573,6 +573,10 @@
             margin: 10px 0;
         }
 
+        .date-divider {
+            margin: 16px 0 8px 0;
+        }
+
         .input-wrapper {
             background: var(--input-area-bg);
             border-top: 1px solid var(--header-border);
@@ -942,6 +946,7 @@
         let isInitialLoad = true;
         let lastSenderId = null;
         let lastMessageTimeStr = "";
+        let lastMessageDateStr = "";
 
         let oldestMessageKey = null;
         let isFirstLoadEvent = true;
@@ -1492,7 +1497,7 @@
 
             // Container for time and reactions
             html += `<div style="display: flex; flex-direction: column; align-items: ${isMe ? 'flex-end' : 'flex-start'};">`;
-            html += `  <span class="msg-time" style="${(isConsecutive && data.hideTime) ? 'display:none;' : ''}">${timeStr}</span>`;
+            html += `  <span class="msg-time">${timeStr}</span>`;
             html += `  <div class="reactions-container" id="reactions-${key}">${renderReactions(key)}</div>`;
             html += `</div>`;
 
@@ -1542,6 +1547,7 @@
 
                 if (isFirstLoadEvent) {
                     oldestMessageKey = key;
+                    lastMessageDateStr = "";
                     isFirstLoadEvent = false;
                 }
 
@@ -1619,6 +1625,7 @@
                         const fragment = document.createDocumentFragment();
                         let chunkLastSenderId = null;
                         let chunkLastMessageTimeStr = "";
+                        let chunkLastDateStr = "";
 
                         messages.forEach((msgObj) => {
                             const data = msgObj.data;
@@ -1635,6 +1642,19 @@
                                         if (val) updateReactionState(key, emojiCode, uid, true);
                                     }
                                 }
+                            }
+
+                            const dateStr = data.time ? formatDateDivider(data.time) : '';
+                            if (dateStr && chunkLastDateStr !== dateStr) {
+                                const divider = document.createElement('div');
+                                divider.className = 'system-msg date-divider';
+                                divider.dataset.date = dateStr;
+                                divider.innerText = dateStr;
+                                fragment.appendChild(divider);
+                                chunkLastDateStr = dateStr;
+
+                                chunkLastSenderId = null;
+                                chunkLastMessageTimeStr = "";
                             }
 
                             const currentSenderId = data.uid || data.nick;
@@ -1664,9 +1684,19 @@
                             fragment.appendChild(row);
                         });
 
+                        const firstDivider = chatArea.querySelector('.date-divider');
                         const firstMsgRow = chatArea.querySelector('.msg-row');
-                        if (firstMsgRow) {
-                            chatArea.insertBefore(fragment, firstMsgRow);
+                        if (firstDivider && firstMsgRow) {
+                            if (firstDivider.compareDocumentPosition(firstMsgRow) & Node.DOCUMENT_POSITION_FOLLOWING) {
+                                if (firstDivider.dataset.date === chunkLastDateStr) {
+                                    firstDivider.remove();
+                                }
+                            }
+                        }
+
+                        const firstRow = chatArea.querySelector('.msg-row');
+                        if (firstRow) {
+                            chatArea.insertBefore(fragment, firstRow);
                         } else {
                             chatArea.prepend(fragment);
                         }
@@ -1698,9 +1728,42 @@
             return `${ampm} ${hours}:${strMinutes}`;
         }
 
+        function formatDateDivider(timestamp) {
+            if (!timestamp) return '';
+            const date = new Date(timestamp);
+            const now = new Date();
+
+            const isToday = date.getDate() === now.getDate() && date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
+
+            const yesterday = new Date(now);
+            yesterday.setDate(now.getDate() - 1);
+            const isYesterday = date.getDate() === yesterday.getDate() && date.getMonth() === yesterday.getMonth() && date.getFullYear() === yesterday.getFullYear();
+
+            const days = ['일', '월', '화', '수', '목', '금', '토'];
+            const dayStr = days[date.getDay()];
+
+            if (isToday) return `오늘`;
+            if (isYesterday) return `어제`;
+
+            return `${date.getFullYear()}년 ${date.getMonth() + 1}월 ${date.getDate()}일 ${dayStr}요일`;
+        }
+
         function drawMessage(key, data) {
             const chatArea = document.getElementById('chat-area');
             const alertBadge = document.getElementById('new-msg-alert');
+
+            const dateStr = data.time ? formatDateDivider(data.time) : '';
+            if (dateStr && lastMessageDateStr !== dateStr) {
+                const divider = document.createElement('div');
+                divider.className = 'system-msg date-divider';
+                divider.dataset.date = dateStr;
+                divider.innerText = dateStr;
+                chatArea.appendChild(divider);
+                lastMessageDateStr = dateStr;
+
+                lastSenderId = null;
+                lastMessageTimeStr = "";
+            }
 
             const currentSenderId = data.uid || data.nick;
             const timeStr = data.time ? formatTime(data.time) : '';
@@ -1713,10 +1776,7 @@
                 if (lastRow && lastRow.classList.contains('msg-row')) {
                     const lastTimeEl = lastRow.querySelector('.msg-time');
                     if (lastTimeEl) lastTimeEl.style.display = 'none';
-                    data.hideTime = true;
                 }
-            } else {
-                data.hideTime = false;
             }
 
             lastSenderId = currentSenderId;
