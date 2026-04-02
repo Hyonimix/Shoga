@@ -1660,9 +1660,10 @@
                             const currentSenderId = data.uid || data.nick;
                             const timeStr = data.time ? formatTime(data.time) : '';
 
-                            const isConsecutive = (chunkLastSenderId === currentSenderId) && (chunkLastMessageTimeStr === timeStr);
+                            const isSameSender = (chunkLastSenderId === currentSenderId);
+                            const isSameTime = (chunkLastMessageTimeStr === timeStr);
 
-                            if (isConsecutive) {
+                            if (isSameSender && isSameTime) {
                                 const lastRow = fragment.lastElementChild;
                                 if (lastRow && lastRow.classList.contains('msg-row')) {
                                     const lastTimeEl = lastRow.querySelector('.msg-time');
@@ -1673,12 +1674,12 @@
                             chunkLastSenderId = currentSenderId;
                             chunkLastMessageTimeStr = timeStr;
 
-                            const { html, isMe, isLina, isLia } = createMessageHTML(key, data, isConsecutive);
+                            const { html, isMe, isLina, isLia } = createMessageHTML(key, data, isSameSender && isSameTime);
 
                             const row = document.createElement('div');
                             row.dataset.key = key;
                             row.dataset.nick = data.nick || '';
-                            row.className = `msg-row ${isMe ? 'me' : 'other'} ${isLina ? 'lina-msg' : ''} ${isLia ? 'lia-msg' : ''} ${isConsecutive ? 'consecutive' : ''}`;
+                            row.className = `msg-row ${isMe ? 'me' : 'other'} ${isLina ? 'lina-msg' : ''} ${isLia ? 'lia-msg' : ''} ${(isSameSender && isSameTime) ? 'consecutive' : ''}`;
                             row.innerHTML = html;
 
                             fragment.appendChild(row);
@@ -1768,10 +1769,10 @@
             const currentSenderId = data.uid || data.nick;
             const timeStr = data.time ? formatTime(data.time) : '';
 
-            const isConsecutive = (lastSenderId === currentSenderId);
+            const isSameSender = (lastSenderId === currentSenderId);
             const isSameTime = (lastMessageTimeStr === timeStr);
 
-            if (isConsecutive && isSameTime) {
+            if (isSameSender && isSameTime) {
                 const lastRow = chatArea.lastElementChild;
                 if (lastRow && lastRow.classList.contains('msg-row')) {
                     const lastTimeEl = lastRow.querySelector('.msg-time');
@@ -1785,12 +1786,12 @@
             const threshold = 50;
             const wasAtBottom = chatArea.scrollHeight - chatArea.scrollTop - chatArea.clientHeight <= threshold;
 
-            const { html, isMe, isLina, isLia } = createMessageHTML(key, data, isConsecutive && isSameTime);
+            const { html, isMe, isLina, isLia } = createMessageHTML(key, data, isSameSender && isSameTime);
 
             const row = document.createElement('div');
             row.dataset.key = key;
             row.dataset.nick = data.nick || '';
-            row.className = `msg-row ${isMe ? 'me' : 'other'} ${isLina ? 'lina-msg' : ''} ${isLia ? 'lia-msg' : ''} ${(isConsecutive && isSameTime) ? 'consecutive' : ''}`;
+            row.className = `msg-row ${isMe ? 'me' : 'other'} ${isLina ? 'lina-msg' : ''} ${isLia ? 'lia-msg' : ''} ${(isSameSender && isSameTime) ? 'consecutive' : ''}`;
             row.innerHTML = html;
 
             chatArea.appendChild(row);
