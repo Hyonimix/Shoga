@@ -793,6 +793,68 @@
                 color: #c2e0ff;
             }
         }
+
+        /* Custom Modal */
+        #custom-modal-backdrop {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(4px);
+            z-index: 2000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s ease;
+        }
+        #custom-modal-backdrop.show {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        #custom-modal-box {
+            background: var(--app-bg);
+            border-radius: 16px;
+            padding: 24px;
+            width: 85%;
+            max-width: 320px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            text-align: center;
+            transform: scale(0.95);
+            transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            border: 1px solid var(--header-border);
+        }
+        #custom-modal-backdrop.show #custom-modal-box {
+            transform: scale(1);
+        }
+        .modal-icon-container {
+            margin-bottom: 16px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 40px;
+        }
+        #custom-modal-title { font-size: 16px; font-weight: bold; color: var(--text-color); margin-bottom: 8px; }
+        #custom-modal-text { font-size: 13px; color: var(--sub-text-color); margin-bottom: 24px; word-break: break-all; line-height: 1.4; }
+        #custom-modal-actions { display: flex; gap: 10px; justify-content: center; }
+        .modal-btn {
+            flex: 1; padding: 12px; border-radius: 12px; font-size: 14px; font-weight: bold; cursor: pointer; border: none; transition: 0.2s;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .modal-btn:active { transform: scale(0.95); }
+        .modal-btn-cancel { background: var(--input-bg); color: var(--sub-text-color); border: 1px solid var(--input-border); }
+        .modal-btn-confirm { background: linear-gradient(135deg, #7c3aed 0%, #4ca1af 100%); color: white; }
+        .modal-btn-danger { background: #e74c3c; color: white; }
+
+        .loader-spinner {
+            border: 3px solid var(--input-border);
+            border-top: 3px solid #7c3aed;
+            border-radius: 50%;
+            width: 32px;
+            height: 32px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
 
@@ -923,6 +985,15 @@
                     </button>
                 </div>
             </div>
+        </div>
+    </div>
+
+    <div id="custom-modal-backdrop">
+        <div id="custom-modal-box">
+            <div class="modal-icon-container" id="custom-modal-icon"></div>
+            <div id="custom-modal-title"></div>
+            <div id="custom-modal-text"></div>
+            <div id="custom-modal-actions"></div>
         </div>
     </div>
 
@@ -1595,19 +1666,86 @@
             });
         }
 
+        // Custom Modal Logic
+        function showCustomModal({ type, title, text, confirmText = '확인', cancelText = '취소', onConfirm, onCancel }) {
+            const backdrop = document.getElementById('custom-modal-backdrop');
+            const iconContainer = document.getElementById('custom-modal-icon');
+            const titleEl = document.getElementById('custom-modal-title');
+            const textEl = document.getElementById('custom-modal-text');
+            const actionsEl = document.getElementById('custom-modal-actions');
+
+            titleEl.innerText = title;
+            textEl.innerHTML = text;
+            actionsEl.innerHTML = '';
+            iconContainer.innerHTML = '';
+
+            if (type === 'loading') {
+                iconContainer.innerHTML = '<div class="loader-spinner"></div>';
+            } else if (type === 'danger') {
+                iconContainer.innerHTML = `<svg viewBox="0 0 24 24" width="32" height="32" fill="#e74c3c"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>`;
+            } else if (type === 'confirm') {
+                iconContainer.innerHTML = `<svg viewBox="0 0 24 24" width="32" height="32" fill="#4ca1af"><path d="M14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3m-2 16H5V5h7V3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-7h-2v7z"/></svg>`;
+            }
+
+            if (type !== 'loading') {
+                if (onCancel) {
+                    const btnCancel = document.createElement('button');
+                    btnCancel.className = 'modal-btn modal-btn-cancel';
+                    btnCancel.innerText = cancelText;
+                    btnCancel.onclick = onCancel;
+                    actionsEl.appendChild(btnCancel);
+                }
+
+                const btnConfirm = document.createElement('button');
+                btnConfirm.className = `modal-btn ${type === 'danger' ? 'modal-btn-danger' : 'modal-btn-confirm'}`;
+                btnConfirm.innerText = confirmText;
+                btnConfirm.onclick = onConfirm || hideCustomModal;
+                actionsEl.appendChild(btnConfirm);
+            }
+
+            backdrop.classList.add('show');
+        }
+
+        function hideCustomModal() {
+            document.getElementById('custom-modal-backdrop').classList.remove('show');
+        }
+
         window.handleLinkClick = async (e, url) => {
             e.preventDefault();
             e.stopPropagation();
             
+            showCustomModal({
+                type: 'loading',
+                title: '안전성 확인 중...',
+                text: '링크가 안전한지 검사하고 있습니다.'
+            });
+            
             const isSafe = await checkUrlSafety(url);
+            
             if (!isSafe) {
-                alert("위험한 URL로 판단되어 접속이 차단되었습니다.");
+                showCustomModal({
+                    type: 'danger',
+                    title: '접속 차단',
+                    text: `위험한 URL로 판단되어 접속이 차단되었습니다.<br><br><span style="color: #e74c3c; font-weight: bold;">${url}</span>`,
+                    confirmText: '확인'
+                });
                 return;
             }
             
-            if (confirm(`외부 링크로 이동하시겠습니까?\n\n${url}`)) {
-                window.open(url, '_blank');
-            }
+            showCustomModal({
+                type: 'confirm',
+                title: '외부 링크 이동',
+                text: `외부 링크로 이동하시겠습니까?<br><br><span style="color: var(--text-color); font-weight: bold;">${url}</span>`,
+                confirmText: '이동',
+                cancelText: '취소',
+                onConfirm: () => {
+                    window.open(url, '_blank');
+                    hideCustomModal();
+                },
+                onCancel: () => {
+                    hideCustomModal();
+                }
+            });
         };
 
         async function checkUrlSafety(url) {
