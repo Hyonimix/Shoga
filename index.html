@@ -1948,13 +1948,24 @@
                     const replyBlock = bubble.querySelector('.bubble-reply');
                     if (replyBlock) replyHtml = replyBlock.outerHTML;
 
+                    let imgHtml = '';
+                    const existingImg = bubble.querySelector('.chat-img');
+                    if (existingImg) {
+                        imgHtml = existingImg.outerHTML;
+                    }
+
                     const newText = editsState[key] ? editsState[key].text : "삭제됨";
-                    bubble.innerHTML = replyHtml + parseLinks(escapeHtml(newText));
+                    let textHtml = '';
+                    if (newText && newText !== 'reaction') {
+                        textHtml = `<div style="margin-top: ${existingImg ? '8px' : '0'};">${parseLinks(escapeHtml(newText))}</div>`;
+                    }
+
+                    bubble.innerHTML = replyHtml + imgHtml + textHtml;
                 }
                 const timeEl = row.querySelector('.msg-time');
                 if (timeEl) {
                     timeEl.style.display = 'block';
-                    const editTimeVal = editsState[key].time;
+                    const editTimeVal = editsState[key] ? editsState[key].time : null;
                     if (editTimeVal) {
                         timeEl.innerHTML = `${formatTime(editTimeVal)} <span class="edit-mark" style="font-size: 9px; opacity: 0.8;">(수정됨)</span>`;
                         timeEl.classList.add('edited');
@@ -2042,8 +2053,19 @@
                             let replyHtml = '';
                             const replyBlock = bubble.querySelector('.bubble-reply');
                             if (replyBlock) replyHtml = replyBlock.outerHTML;
+                            
+                            let imgHtml = '';
+                            if (data.imageUrl) {
+                                imgHtml = `<img src="${data.imageUrl}" class="chat-img" onclick="window.open('${data.imageUrl}', '_blank')">`;
+                            }
+
                             const newText = editsState[key] ? editsState[key].text : data.text;
-                            bubble.innerHTML = replyHtml + parseLinks(escapeHtml(newText));
+                            let textHtml = '';
+                            if (newText && newText !== 'reaction' && data.type !== 'reaction') {
+                                textHtml = `<div style="margin-top: ${data.imageUrl ? '8px' : '0'};">${parseLinks(escapeHtml(newText))}</div>`;
+                            }
+
+                            bubble.innerHTML = replyHtml + imgHtml + textHtml;
                         }
                         const timeEl = row.querySelector('.msg-time');
                         if (timeEl) {
