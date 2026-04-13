@@ -175,7 +175,7 @@
         <div id="log-area">
             <div class="log-line sys">Shoga CLI Transmitter v1.4.0 initialized.</div>
             <div class="log-line sys">Mode: API Key Only (Anonymous)</div>
-            <div class="log-line info">Commands: /clear | /reply [id] [text] | /react [id] [emoji]</div>
+            <div class="log-line info">Commands: /clear | /reply [id] [text] | /react [id] [emoji] | /edit [id] [text]</div>
         </div>
         <div class="input-line">
             <span class="prompt">shoga@cli:~$</span>
@@ -185,7 +185,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getDatabase, ref, push, onChildAdded, onChildChanged, serverTimestamp, query, limitToLast, orderByKey, endBefore, get } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+        import { getDatabase, ref, push, update, onChildAdded, onChildChanged, serverTimestamp, query, limitToLast, orderByKey, endBefore, get } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
         const monitorPanel = document.getElementById('monitor-panel');
@@ -355,6 +355,10 @@
 
                 if (data && data.type === 'reaction') {
                     updateReactionState(data.targetKey, data.emoji, data.uid, data.isAdded);
+                    return;
+                }
+
+                if (data && data.type === 'edit') {
                     return;
                 }
 
@@ -576,6 +580,49 @@
                         cmdInput.focus();
                     } else {
                         printLog("Usage: /react [message_id] [emoji]", 'err');
+                    }
+                }
+                else if (val.startsWith('/edit ')) {
+                    const parts = val.split(' ');
+                    if (parts.length >= 3) {
+                        const targetKey = parts[1];
+                        const msgText = parts.slice(2).join(' ');
+
+                        isCmdSending = true;
+                        cmdInput.style.opacity = '0.5';
+                        cmdInput.value = '';
+
+                        try {
+                            const targetRef = ref(db, `chats/${GLOBAL_ROOM_ID}/${targetKey}`);
+                            const snap = await get(targetRef);
+                            if (snap.exists()) {
+                                const targetData = snap.val();
+                                if (targetData.uid !== currentUser.uid) {
+                                    printLog(`Error: You can only edit your own messages.`, 'err');
+                                } else {
+                                    const chatRef = ref(db, `chats/${GLOBAL_ROOM_ID}`);
+                                    await push(chatRef, {
+                                        uid: currentUser.uid,
+                                        nick: FIXED_NICK,
+                                        text: msgText,
+                                        type: 'edit',
+                                        targetKey: targetKey,
+                                        time: serverTimestamp()
+                                    });
+                                    printLog(`Edited message [${targetKey}]`, 'success');
+                                }
+                            } else {
+                                printLog(`Error: Target message [${targetKey}] not found.`, 'err');
+                            }
+                        } catch (err) {
+                            printLog(`Error: ${err.message}`, 'err');
+                        }
+
+                        isCmdSending = false;
+                        cmdInput.style.opacity = '1';
+                        cmdInput.focus();
+                    } else {
+                        printLog("Usage: /edit [message_id] [text]", 'err');
                     }
                 }
                 else {

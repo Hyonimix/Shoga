@@ -375,7 +375,7 @@
         .msg-row {
             display: flex;
             flex-direction: column;
-            max-width: 75%;
+            width: 75%;
             position: relative;
         }
 
@@ -774,6 +774,25 @@
             z-index: 999;
             display: none;
         }
+
+        /* URL Link Style */
+        .chat-link {
+            color: #1a73e8;
+            text-decoration: underline;
+            cursor: pointer;
+            word-break: break-all;
+        }
+        .msg-row.me .chat-link {
+            color: #0056b3;
+        }
+        @media (prefers-color-scheme: dark) {
+            .chat-link {
+                color: #8ab4f8;
+            }
+            .msg-row.me .chat-link {
+                color: #c2e0ff;
+            }
+        }
     </style>
 </head>
 
@@ -923,11 +942,23 @@
             </svg>
             답장
         </div>
+        <div class="cm-item" onclick="copyMessage()">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+                <path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/>
+            </svg>
+            복사
+        </div>
+        <div class="cm-item" id="cm-edit-btn" onclick="triggerEdit()">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+                <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
+            </svg>
+            편집
+        </div>
     </div>
 
     <script type="module">
         import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getDatabase, ref, push, onChildAdded, onChildChanged, serverTimestamp, query, limitToLast, orderByKey, endBefore, get } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+        import { getDatabase, ref, push, update, onChildAdded, onChildChanged, serverTimestamp, query, limitToLast, orderByKey, endBefore, get } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
         import { getAuth, signInAnonymously, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
         const baseConfig = {
@@ -954,9 +985,11 @@
         let hasMoreHistory = true;
 
         let currentReplyData = null;
+        let currentEditData = null;
         let currentContextMenuKey = null;
 
         const reactionsState = {};
+        const editsState = {};
 
         const EMOJI_MAP = {
             '👍': 'Emoji_Thumbsup',
@@ -1049,67 +1082,85 @@
             let currentX = 0;
             let isSwiping = false;
             let swipedRow = null;
-            let swipedBubble = null;
             const threshold = 60;
 
             chatArea.addEventListener('touchstart', (e) => {
-                const bubble = e.target.closest('.bubble');
-                if (!bubble) return;
-
-                const msgRow = bubble.closest('.msg-row');
+                const msgRow = e.target.closest('.msg-row');
                 if (!msgRow) return;
+
+                if (e.target.closest('.chat-link')) return;
 
                 startX = e.touches[0].clientX;
                 startY = e.touches[0].clientY;
                 currentX = startX;
                 isSwiping = false;
                 swipedRow = msgRow;
-                swipedBubble = bubble;
-                swipedBubble.style.transition = 'none';
+                
+                swipedRow.style.transition = 'none';
             }, { passive: true });
 
             chatArea.addEventListener('touchmove', (e) => {
-                if (!swipedBubble) return;
+                if (!swipedRow) return;
 
                 currentX = e.touches[0].clientX;
                 const currentY = e.touches[0].clientY;
                 const diffX = currentX - startX;
                 const diffY = currentY - startY;
 
-                if (!isSwiping && Math.abs(diffY) > Math.abs(diffX)) {
-                    swipedBubble.style.transition = 'transform 0.2s ease-out';
-                    swipedBubble.style.transform = 'translateX(0)';
-                    swipedBubble = null;
-                    return;
+                if (!isSwiping) {
+                    if (Math.abs(diffX) > 10 || Math.abs(diffY) > 10) {
+                        if (Math.abs(diffY) > Math.abs(diffX) * 0.8) {
+                            swipedRow.style.transition = 'transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1)';
+                            swipedRow.style.transform = 'translateX(0)';
+                            swipedRow = null;
+                            return;
+                        } else {
+                            isSwiping = true;
+                        }
+                    } else {
+                        return;
+                    }
                 }
 
-                if (diffX > 0 && diffX < 120) {
-                    isSwiping = true;
-                    swipedBubble.style.transform = `translateX(${diffX}px)`;
+                if (isSwiping) {
+                    if (e.cancelable) e.preventDefault();
+                    if (diffX < 0) {
+                        let moveX = diffX;
+                        if (moveX < -threshold) {
+                            const extra = moveX + threshold;
+                            moveX = -threshold + (extra * 0.3);
+                        }
+                        swipedRow.style.transform = `translateX(${moveX}px)`;
+                    } else {
+                        swipedRow.style.transform = `translateX(${diffX * 0.1}px)`;
+                    }
                 }
-            }, { passive: true });
+            }, { passive: false });
 
             chatArea.addEventListener('touchend', (e) => {
-                if (!swipedBubble) return;
+                if (!swipedRow) return;
 
                 const diffX = currentX - startX;
 
-                swipedBubble.style.transition = 'transform 0.2s ease-out';
-                swipedBubble.style.transform = 'translateX(0)';
+                swipedRow.style.transition = 'transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1)';
+                swipedRow.style.transform = 'translateX(0)';
 
-                if (isSwiping && diffX > threshold) {
+                if (isSwiping && diffX < -threshold) {
                     triggerReplyFromRow(swipedRow);
+                    if (window.navigator && window.navigator.vibrate) {
+                        window.navigator.vibrate(50);
+                    }
                 }
 
-                swipedBubble = null;
+                swipedRow = null;
                 isSwiping = false;
             });
 
             chatArea.addEventListener('touchcancel', () => {
-                if (swipedBubble) {
-                    swipedBubble.style.transition = 'transform 0.2s ease-out';
-                    swipedBubble.style.transform = 'translateX(0)';
-                    swipedBubble = null;
+                if (swipedRow) {
+                    swipedRow.style.transition = 'transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1)';
+                    swipedRow.style.transform = 'translateX(0)';
+                    swipedRow = null;
                 }
                 isSwiping = false;
             });
@@ -1121,6 +1172,14 @@
 
             const cm = document.getElementById('context-menu');
             const backdrop = document.getElementById('cm-backdrop');
+            const editBtn = document.getElementById('cm-edit-btn');
+
+            const msgRow = document.querySelector(`.msg-row[data-key="${msgKey}"]`);
+            if (msgRow && msgRow.classList.contains('me')) {
+                editBtn.style.display = 'flex';
+            } else {
+                editBtn.style.display = 'none';
+            }
 
             cm.style.display = 'block';
             backdrop.style.display = 'block';
@@ -1140,6 +1199,40 @@
             document.getElementById('cm-backdrop').style.display = 'none';
             currentContextMenuKey = null;
         }
+
+        window.copyMessage = () => {
+            if (!currentContextMenuKey) return;
+            const msgRow = document.querySelector(`.msg-row[data-key="${currentContextMenuKey}"]`);
+            if (msgRow) {
+                const bubble = msgRow.querySelector('.bubble');
+                let clone = bubble.cloneNode(true);
+                const replyBlock = clone.querySelector('.bubble-reply');
+                if (replyBlock) replyBlock.remove();
+                navigator.clipboard.writeText(clone.innerText.trim());
+            }
+            closeContextMenu();
+        };
+
+        window.triggerEdit = () => {
+            if (!currentContextMenuKey) return;
+            const msgRow = document.querySelector(`.msg-row[data-key="${currentContextMenuKey}"]`);
+            if (msgRow) {
+                const bubble = msgRow.querySelector('.bubble');
+                let clone = bubble.cloneNode(true);
+                const replyBlock = clone.querySelector('.bubble-reply');
+                if (replyBlock) replyBlock.remove();
+                
+                const text = clone.innerText.trim();
+                currentEditData = { key: currentContextMenuKey };
+                
+                document.getElementById('reply-preview-nick').innerText = "메시지 편집";
+                document.getElementById('reply-preview-text').innerText = text;
+                document.getElementById('reply-preview').classList.add('active');
+                document.getElementById('msg-input').value = text;
+                document.getElementById('msg-input').focus();
+            }
+            closeContextMenu();
+        };
 
         function triggerReplyFromRow(msgRow) {
             if (!msgRow) return;
@@ -1175,7 +1268,11 @@
         }
 
         window.cancelReply = () => {
+            if (currentEditData) {
+                document.getElementById('msg-input').value = '';
+            }
             currentReplyData = null;
+            currentEditData = null;
             document.getElementById('reply-preview').classList.remove('active');
         }
 
@@ -1468,12 +1565,87 @@
             }
         }
 
+        function parseLinks(text) {
+            const validTlds = 'com|net|org|kr|co|io|me|info|edu|gov|tv|biz|ai|dev|app|site|shop|wiki|xyz';
+            
+            const urlRegex = new RegExp(`(?:https?:\\/\\/|www\\.)[^\\s<]+|\\b[a-zA-Z0-9.-]+\\.(?:${validTlds})\\b(?:\\/[^\\s<]*)?`, 'gi');
+            
+            return text.replace(urlRegex, function(match) {
+                let url = match;
+                let trailing = '';
+                
+                const trailingPunctuation = /([.,!?]+|&quot;|&apos;|&gt;|&lt;|&amp;)+$/;
+                const tMatch = url.match(trailingPunctuation);
+                if (tMatch) {
+                    trailing = tMatch[0];
+                    url = url.substring(0, url.length - trailing.length);
+                }
+                
+                const lower = url.toLowerCase();
+                let href = url;
+                
+                if (!lower.startsWith('http://') && !lower.startsWith('https://')) {
+                    href = 'https://' + url;
+                }
+                
+                const safeHrefForHTML = href.replace(/"/g, "&quot;");
+                const safeHrefForJs = href.replace(/'/g, "\\'").replace(/"/g, "&quot;");
+                
+                return `<a href="${safeHrefForHTML}" class="chat-link" onclick="handleLinkClick(event, '${safeHrefForJs}')">${url}</a>` + trailing;
+            });
+        }
+
+        window.handleLinkClick = async (e, url) => {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const isSafe = await checkUrlSafety(url);
+            if (!isSafe) {
+                alert("위험한 URL로 판단되어 접속이 차단되었습니다.");
+                return;
+            }
+            
+            if (confirm(`외부 링크로 이동하시겠습니까?\n\n${url}`)) {
+                window.open(url, '_blank');
+            }
+        };
+
+        async function checkUrlSafety(url) {
+            try {
+                const formData = new URLSearchParams();
+                formData.append('url', url);
+                
+                const response = await fetch('https://urlhaus-api.abuse.ch/v1/url/', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (data.query_status === 'ok') {
+                    return false;
+                }
+                
+                return true;
+            } catch (error) {
+                console.error("URL 안전성 검사 중 오류 발생:", error);
+                return true;
+            }
+        }
+
         function createMessageHTML(key, data, isConsecutive) {
             const isMe = user && (data.uid === user.uid);
             const isLina = data.nick === '리나';
             const isLia = data.nick === '리아';
             const nickColor = getNickColor(data.nick);
             const timeStr = data.time ? formatTime(data.time) : '';
+            
+            const currentText = editsState[key] ? editsState[key].text : data.text;
+            
+            const editTimeVal = editsState[key] ? editsState[key].time : data.editedTime;
+            const hasEdit = !!editTimeVal;
+            const displayTimeStr = hasEdit ? formatTime(editTimeVal) : timeStr;
+            const editMarkHtml = hasEdit ? ` <span class="edit-mark" style="font-size: 9px; opacity: 0.8;">(수정됨)</span>` : '';
 
             let html = '';
             if (!isMe && !isConsecutive) {
@@ -1493,11 +1665,13 @@
                             <div class="bubble-reply-text">${escapeHtml(data.replyTo.text)}</div>
                          </div>`;
             }
-            html += `${escapeHtml(data.text)}</div>`;
+            html += `${parseLinks(escapeHtml(currentText))}</div>`;
 
             // Container for time and reactions
             html += `<div style="display: flex; flex-direction: column; align-items: ${isMe ? 'flex-end' : 'flex-start'};">`;
-            html += `  <span class="msg-time">${timeStr}</span>`;
+            
+            html += `  <span class="msg-time${hasEdit ? ' edited' : ''}">${displayTimeStr}${editMarkHtml}</span>`;
+            
             html += `  <div class="reactions-container" id="reactions-${key}">${renderReactions(key)}</div>`;
             html += `</div>`;
 
@@ -1524,6 +1698,30 @@
                          </div>`;
             }
             return html;
+        }
+
+        function updateMessageInDOM(key) {
+            const row = document.querySelector(`.msg-row[data-key="${key}"]`);
+            if (row) {
+                const bubble = row.querySelector('.bubble');
+                if (bubble) {
+                    let replyHtml = '';
+                    const replyBlock = bubble.querySelector('.bubble-reply');
+                    if (replyBlock) replyHtml = replyBlock.outerHTML;
+
+                    const newText = editsState[key] ? editsState[key].text : "삭제됨";
+                    bubble.innerHTML = replyHtml + parseLinks(escapeHtml(newText));
+                }
+                const timeEl = row.querySelector('.msg-time');
+                if (timeEl) {
+                    timeEl.style.display = 'block';
+                    const editTimeVal = editsState[key].time;
+                    if (editTimeVal) {
+                        timeEl.innerHTML = `${formatTime(editTimeVal)} <span class="edit-mark" style="font-size: 9px; opacity: 0.8;">(수정됨)</span>`;
+                        timeEl.classList.add('edited');
+                    }
+                }
+            }
         }
 
         function loadChat() {
@@ -1562,6 +1760,14 @@
                     return;
                 }
 
+                if (data.type === 'edit') {
+                    if (!editsState[data.targetKey] || (editsState[data.targetKey].time || 0) < (data.time || 0)) {
+                        editsState[data.targetKey] = { text: data.text, time: data.time };
+                        updateMessageInDOM(data.targetKey);
+                    }
+                    return;
+                }
+
                 if (data.reactions) {
                     for (const [emojiCode, users] of Object.entries(data.reactions)) {
                         for (const [uid, val] of Object.entries(users)) {
@@ -1577,7 +1783,7 @@
                 const data = snapshot.val();
                 const key = snapshot.key;
 
-                if (data && data.type !== 'reaction') {
+                if (data && data.type !== 'reaction' && data.type !== 'edit') {
                     if (data.reactions) {
                         for (const [emojiCode, users] of Object.entries(data.reactions)) {
                             for (const [uid, val] of Object.entries(users)) {
@@ -1588,6 +1794,32 @@
                     const reactionsContainer = document.getElementById(`reactions-${key}`);
                     if (reactionsContainer) {
                         reactionsContainer.innerHTML = renderReactions(key);
+                    }
+
+                    const row = document.querySelector(`.msg-row[data-key="${key}"]`);
+                    if (row) {
+                        const bubble = row.querySelector('.bubble');
+                        if (bubble) {
+                            let replyHtml = '';
+                            const replyBlock = bubble.querySelector('.bubble-reply');
+                            if (replyBlock) replyHtml = replyBlock.outerHTML;
+                            const newText = editsState[key] ? editsState[key].text : data.text;
+                            bubble.innerHTML = replyHtml + parseLinks(escapeHtml(newText));
+                        }
+                        const timeEl = row.querySelector('.msg-time');
+                        if (timeEl) {
+                            const timeStr = data.time ? formatTime(data.time) : '';
+                            const editTimeVal = editsState[key] ? editsState[key].time : data.editedTime;
+                            const hasEdit = !!editTimeVal;
+                            const displayTimeStr = hasEdit ? formatTime(editTimeVal) : timeStr;
+                            const editMarkHtml = hasEdit ? ` <span class="edit-mark" style="font-size: 9px; opacity: 0.8;">(수정됨)</span>` : '';
+
+                            timeEl.innerHTML = `${displayTimeStr}${editMarkHtml}`;
+                            if (hasEdit) {
+                                timeEl.style.display = 'block';
+                                timeEl.classList.add('edited');
+                            }
+                        }
                     }
                 }
             });
@@ -1636,6 +1868,14 @@
                                 return;
                             }
 
+                            if (data.type === 'edit') {
+                                if (!editsState[data.targetKey] || (editsState[data.targetKey].time || 0) < (data.time || 0)) {
+                                    editsState[data.targetKey] = { text: data.text, time: data.time };
+                                    updateMessageInDOM(data.targetKey);
+                                }
+                                return;
+                            }
+
                             if (data.reactions) {
                                 for (const [emojiCode, users] of Object.entries(data.reactions)) {
                                     for (const [uid, val] of Object.entries(users)) {
@@ -1666,8 +1906,11 @@
                             if (isSameSender && isSameTime) {
                                 const lastRow = fragment.lastElementChild;
                                 if (lastRow && lastRow.classList.contains('msg-row')) {
-                                    const lastTimeEl = lastRow.querySelector('.msg-time');
-                                    if (lastTimeEl) lastTimeEl.style.display = 'none';
+                                    const hasEditMark = lastRow.querySelector('.edited');
+                                    if (!hasEditMark) {
+                                        const lastTimeEl = lastRow.querySelector('.msg-time');
+                                        if (lastTimeEl) lastTimeEl.style.display = 'none';
+                                    }
                                 }
                             }
 
@@ -1775,8 +2018,11 @@
             if (isSameSender && isSameTime) {
                 const lastRow = chatArea.lastElementChild;
                 if (lastRow && lastRow.classList.contains('msg-row')) {
-                    const lastTimeEl = lastRow.querySelector('.msg-time');
-                    if (lastTimeEl) lastTimeEl.style.display = 'none';
+                    const hasEditMark = lastRow.querySelector('.edited');
+                    if (!hasEditMark) {
+                        const lastTimeEl = lastRow.querySelector('.msg-time');
+                        if (lastTimeEl) lastTimeEl.style.display = 'none';
+                    }
                 }
             }
 
@@ -1837,6 +2083,30 @@
             isSending = true;
             btn.disabled = true;
             btn.style.opacity = '0.5';
+
+            if (currentEditData) {
+                const chatRef = ref(db, 'chats/' + currentRoomId);
+                push(chatRef, {
+                    uid: user.uid,
+                    nick: myNick,
+                    text: text,
+                    type: 'edit',
+                    targetKey: currentEditData.key,
+                    time: serverTimestamp()
+                }).then(() => {
+                    cancelReply();
+                }).catch((e) => {
+                    console.error("메시지 수정 에러:", e);
+                    alert("수정 전송 실패: " + e.message);
+                    input.value = text;
+                }).finally(() => {
+                    btn.disabled = false;
+                    btn.style.opacity = '1';
+                    input.focus();
+                    isSending = false;
+                });
+                return;
+            }
 
             input.value = '';
 
