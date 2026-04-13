@@ -767,10 +767,7 @@
         /* Backdrop for mobile to catch touches */
         #cm-backdrop {
             position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
+            top: 0; left: 0; right: 0; bottom: 0;
             z-index: 999;
             display: none;
         }
@@ -855,6 +852,52 @@
             animation: spin 1s linear infinite;
         }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* Image Specific Styles */
+        .img-preview-container {
+            padding: 10px;
+            background: var(--input-bg);
+            border-top: 1px solid var(--header-border);
+            display: none;
+            position: relative;
+        }
+        .img-preview-container.active { display: block; }
+        .img-preview {
+            max-width: 100px;
+            max-height: 100px;
+            border-radius: 8px;
+            display: block;
+        }
+        .btn-remove-img {
+            position: absolute;
+            top: 5px;
+            left: 95px;
+            background: rgba(0,0,0,0.5);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        .chat-img {
+            max-width: 100%;
+            border-radius: 12px;
+            margin-top: 8px;
+            cursor: pointer;
+            display: block;
+        }
+        .btn-attach {
+            background: none;
+            border: none;
+            color: var(--sub-text-color);
+            cursor: pointer;
+            padding: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
     </style>
 </head>
 
@@ -975,8 +1018,18 @@
                     <div class="reply-preview-text" id="reply-preview-text">메시지 내용...</div>
                     <button class="btn-close-reply" onclick="cancelReply()">✕</button>
                 </div>
+                <div id="img-preview-container" class="img-preview-container">
+                    <img id="img-preview" class="img-preview" src="">
+                    <button class="btn-remove-img" onclick="removeImage()">✕</button>
+                </div>
                 <div class="input-area">
-                    <input type="text" id="msg-input" placeholder="메시지를 입력하세요"
+                    <button class="btn-attach" onclick="document.getElementById('img-input').click()">
+                        <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
+                            <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
+                        </svg>
+                    </button>
+                    <input type="file" id="img-input" accept="image/*" hidden onchange="handleImageSelect(event)">
+                    <input type="text" id="msg-input" placeholder="메시지 입력 (이미지 붙여넣기 가능)"
                         onkeypress="if(event.key==='Enter') sendMessage()">
                     <button id="send-btn">
                         <svg viewBox="0 0 24 24">
@@ -1031,6 +1084,7 @@
         import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getDatabase, ref, push, update, onChildAdded, onChildChanged, serverTimestamp, query, limitToLast, orderByKey, endBefore, get } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
         import { getAuth, signInAnonymously, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getStorage, ref as sRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
 
         const baseConfig = {
             authDomain: "shoga-intermediary.firebaseapp.com",
@@ -1042,7 +1096,7 @@
         };
 
         let currentRoomId = "Laboratory";
-        let app, db, auth, user;
+        let app, db, auth, storage, user;
         let myNick = "";
         let isChatLoaded = false;
         let isInitialLoad = true;
@@ -1058,6 +1112,7 @@
         let currentReplyData = null;
         let currentEditData = null;
         let currentContextMenuKey = null;
+        let pendingImageFile = null;
 
         const reactionsState = {};
         const editsState = {};
@@ -1111,7 +1166,43 @@
             setupScrollListener();
             setupContextMenuListeners();
             setupSwipeToReplyListeners();
+            setupPasteListener();
         });
+
+        function setupPasteListener() {
+            window.addEventListener('paste', (e) => {
+                const items = e.clipboardData.items;
+                for (let i = 0; i < items.length; i++) {
+                    if (items[i].type.indexOf('image') !== -1) {
+                        const file = items[i].getAsFile();
+                        setPendingImage(file);
+                        break;
+                    }
+                }
+            });
+        }
+
+        window.handleImageSelect = (e) => {
+            if (e.target.files && e.target.files[0]) {
+                setPendingImage(e.target.files[0]);
+            }
+        };
+
+        function setPendingImage(file) {
+            pendingImageFile = file;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                document.getElementById('img-preview').src = e.target.result;
+                document.getElementById('img-preview-container').classList.add('active');
+            };
+            reader.readAsDataURL(file);
+        }
+
+        window.removeImage = () => {
+            pendingImageFile = null;
+            document.getElementById('img-preview-container').classList.remove('active');
+            document.getElementById('img-input').value = '';
+        };
 
         function setupContextMenuListeners() {
             const chatArea = document.getElementById('chat-area');
@@ -1159,7 +1250,7 @@
                 const msgRow = e.target.closest('.msg-row');
                 if (!msgRow) return;
 
-                if (e.target.closest('.chat-link')) return;
+                if (e.target.closest('.chat-link') || e.target.closest('.chat-img')) return;
 
                 startX = e.touches[0].clientX;
                 startY = e.touches[0].clientY;
@@ -1544,6 +1635,7 @@
                 app = initializeApp(config);
                 auth = getAuth(app);
                 db = getDatabase(app);
+                storage = getStorage(app);
                 await signInAnonymously(auth);
                 user = auth.currentUser;
 
@@ -1803,7 +1895,16 @@
                             <div class="bubble-reply-text">${escapeHtml(data.replyTo.text)}</div>
                          </div>`;
             }
-            html += `${parseLinks(escapeHtml(currentText))}</div>`;
+            
+            if (data.imageUrl) {
+                html += `<img src="${data.imageUrl}" class="chat-img" onclick="window.open('${data.imageUrl}', '_blank')">`;
+            }
+            
+            if (currentText && currentText !== 'reaction' && data.type !== 'reaction') {
+                html += `<div style="margin-top: ${data.imageUrl ? '8px' : '0'};">${parseLinks(escapeHtml(currentText))}</div>`;
+            }
+            
+            html += `</div>`;
 
             // Container for time and reactions
             html += `<div style="display: flex; flex-direction: column; align-items: ${isMe ? 'flex-end' : 'flex-start'};">`;
@@ -2196,7 +2297,7 @@
                 setFaviconAlert(true);
                 if ("Notification" in window && Notification.permission === "granted") {
                     const notification = new Notification(formatDisplayNick(data.nick), {
-                        body: data.text
+                        body: data.imageUrl ? '' : data.text
                     });
                     notification.onclick = () => {
                         window.focus();
@@ -2210,68 +2311,97 @@
             isInitialLoad = false;
         }, 2000);
 
+        async function compressImage(file) {
+            const targetSize = 512 * 1024; // 512KB
+            if (file.size <= targetSize && file.type === 'image/webp') return file;
+
+            return new Promise((resolve) => {
+                const img = new Image();
+                img.src = URL.createObjectURL(file);
+                img.onload = () => {
+                    URL.revokeObjectURL(img.src);
+                    const canvas = document.createElement('canvas');
+                    
+                    const estimatedBpp = 0.5;
+                    const maxPixels = targetSize / estimatedBpp;
+                    const currentPixels = img.width * img.height;
+                    const scale = Math.min(1, Math.sqrt(maxPixels / currentPixels));
+
+                    canvas.width = img.width * scale;
+                    canvas.height = img.height * scale;
+                    
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                    
+                    canvas.toBlob((blob) => {
+                        resolve(blob);
+                    }, 'image/webp', 0.7);
+                };
+            });
+        }
+
         let isSending = false;
-        window.sendMessage = () => {
+        window.sendMessage = async () => {
             if (isSending) return;
             const input = document.getElementById('msg-input');
             const btn = document.getElementById('send-btn');
             const text = input.value.trim();
-            if (!text || !user) return;
+            
+            if (!text && !pendingImageFile) return;
+            if (!user) return;
 
             isSending = true;
             btn.disabled = true;
             btn.style.opacity = '0.5';
 
-            if (currentEditData) {
-                const chatRef = ref(db, 'chats/' + currentRoomId);
-                push(chatRef, {
-                    uid: user.uid,
-                    nick: myNick,
-                    text: text,
-                    type: 'edit',
-                    targetKey: currentEditData.key,
-                    time: serverTimestamp()
-                }).then(() => {
+            try {
+                if (currentEditData) {
+                    const chatRef = ref(db, 'chats/' + currentRoomId);
+                    await push(chatRef, {
+                        uid: user.uid,
+                        nick: myNick,
+                        text: text,
+                        type: 'edit',
+                        targetKey: currentEditData.key,
+                        time: serverTimestamp()
+                    });
                     cancelReply();
-                }).catch((e) => {
-                    console.error("메시지 수정 에러:", e);
-                    alert("수정 전송 실패: " + e.message);
-                    input.value = text;
-                }).finally(() => {
-                    btn.disabled = false;
-                    btn.style.opacity = '1';
-                    input.focus();
-                    isSending = false;
-                });
-                return;
-            }
+                } else {
+                    let imageUrl = null;
+                    if (pendingImageFile) {
+                        const compressedBlob = await compressImage(pendingImageFile);
+                        const fileName = `img_${Date.now()}.webp`;
+                        const storageRef = sRef(storage, `chats/${currentRoomId}/${fileName}`);
+                        const snapshot = await uploadBytes(storageRef, compressedBlob);
+                        imageUrl = await getDownloadURL(snapshot.ref);
+                        removeImage();
+                    }
 
-            input.value = '';
-
-            const chatRef = ref(db, 'chats/' + currentRoomId);
-
-            const payload = {
-                uid: user.uid,
-                nick: myNick,
-                text: text,
-                time: serverTimestamp()
-            };
-
-            if (currentReplyData) {
-                payload.replyTo = currentReplyData;
-                cancelReply();
-            }
-
-            push(chatRef, payload).then(() => {
-            }).catch(() => {
-                alert("전송 실패");
-                input.value = text;
-            }).finally(() => {
+                    input.value = '';
+                    const chatRef = ref(db, 'chats/' + currentRoomId);
+                    const payload = {
+                        uid: user.uid,
+                        nick: myNick,
+                        text: text,
+                        time: serverTimestamp()
+                    };
+                    if (imageUrl) payload.imageUrl = imageUrl;
+                    if (currentReplyData) {
+                        payload.replyTo = currentReplyData;
+                        cancelReply();
+                    }
+                    await push(chatRef, payload);
+                }
+            } catch (e) {
+                console.error("전송 에러:", e);
+                alert("전송 실패: " + e.message);
+                if (text) input.value = text;
+            } finally {
                 btn.disabled = false;
                 btn.style.opacity = '1';
                 input.focus();
                 isSending = false;
-            });
+            }
         };
 
         function escapeHtml(text) {

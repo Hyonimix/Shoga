@@ -298,6 +298,13 @@
             }
         });
 
+        function formatJsonEntry(data) {
+            let jsonString = JSON.stringify(data, null, 2);
+            jsonString = jsonString.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            jsonString = jsonString.replace(/&quot;(https?:\/\/[^&]+)&quot;/g, '&quot;<a href="$1" target="_blank" style="color: #4ca1af; text-decoration: underline;">$1</a>&quot;');
+            return jsonString;
+        }
+
         function upsertJsonEntry(key, data) {
             let el = document.getElementById(`json-${key}`);
             if (!el) {
@@ -306,7 +313,7 @@
                 el.className = 'json-entry';
                 jsonViewer.appendChild(el);
             }
-            el.textContent = `"${key}": ${JSON.stringify(data, null, 2)},`;
+            el.innerHTML = `"${key}": ${formatJsonEntry(data)},`;
             return el;
         }
 
@@ -451,7 +458,7 @@
                             const div = document.createElement('div');
                             div.id = `json-${msgObj.key}`;
                             div.className = 'json-entry';
-                            div.textContent = `"${msgObj.key}": ${JSON.stringify(msgObj.data, null, 2)},`;
+                            div.innerHTML = `"${msgObj.key}": ${formatJsonEntry(msgObj.data)},`;
                             fragment.appendChild(div);
                         });
 
