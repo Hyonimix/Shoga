@@ -988,6 +988,7 @@
 
                 <input type="file" id="qr-input-file" accept="image/*" hidden onchange="scanFromFile(this)">
                 <p id="error-msg" style="color: #e74c3c; font-size: 12px; margin-top: 10px;"></p>
+                <div style="font-size: 11px; color: var(--sub-text-color); margin-top: 15px; cursor: pointer; text-decoration: underline;" onclick="showOssLicenses()">Open Source Licenses</div>
             </div>
         </div>
 
@@ -1802,6 +1803,22 @@
         function hideCustomModal() {
             document.getElementById('custom-modal-backdrop').classList.remove('show');
         }
+
+        window.showOssLicenses = () => {
+            showCustomModal({
+                type: 'confirm',
+                title: 'Open Source Licenses',
+                text: `<div style="text-align: left; font-size: 11px; max-height: 200px; overflow-y: auto; background: var(--input-bg); padding: 10px; border-radius: 8px; border: 1px solid var(--input-border); color: var(--text-color);">
+                    <strong>html5-qrcode</strong><br>
+                    Copyright (c) mebjas<br>
+                    Licensed under the Apache License, Version 2.0<br><br>
+                    <strong>Firebase JS SDK</strong><br>
+                    Copyright Google LLC<br>
+                    Licensed under the Apache License, Version 2.0
+                </div>`,
+                confirmText: '닫기'
+            });
+        };
 
         window.handleLinkClick = async (e, url) => {
             e.preventDefault();
