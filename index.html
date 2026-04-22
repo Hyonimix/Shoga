@@ -93,6 +93,24 @@
             padding: 0;
             font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", sans-serif;
             -webkit-tap-highlight-color: transparent;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(150, 150, 150, 0.3) transparent;
+        }
+
+        /* Webkit scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(150, 150, 150, 0.3);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(150, 150, 150, 0.5);
         }
 
         body {
@@ -2452,8 +2470,6 @@
                         window.globalChatData = messages.concat(window.globalChatData);
                         // Sort by time just in case
                         window.globalChatData.sort((a, b) => (a.data.time || 0) - (b.data.time || 0));
-                        oldestMessageKey = window.globalChatData[0].key;
-                        oldestMessageTime = window.globalChatData[0].data.time || oldestMessageTime;
                         
                         // If drawer is open, refresh silently
                         if (document.getElementById('lab-drawer').classList.contains('open')) {
@@ -3047,8 +3063,16 @@
                 triggerFlash(rowInMain);
                 document.getElementById('return-toast').classList.add('show');
             } else {
-                alert('해당 메시지를 불러올 수 없습니다.');
-                window.returnToOriginalPosition();
+                showCustomModal({
+                    type: 'danger',
+                    title: '탐색 실패',
+                    text: '해당 메시지를 불러올 수 없습니다.',
+                    confirmText: '확인',
+                    onConfirm: () => {
+                        hideCustomModal();
+                        window.returnToOriginalPosition();
+                    }
+                });
             }
         };
 
@@ -3063,15 +3087,19 @@
 
         window.fetchAlbumChunk = async () => {
             const btn = document.getElementById('btn-fetch-album');
+            let originalIcon = '';
             if (btn) {
+                originalIcon = btn.innerHTML;
+                btn.innerHTML = '<div class="loader-spinner" style="width:16px;height:16px;border-width:2px;"></div>';
                 btn.disabled = true;
-                btn.style.opacity = '0.5';
+                btn.style.opacity = '1'; /* Keep opacity 1 so spinner is visible */
             }
             
             await fetchHistoryChunk(500);
             refreshActiveDrawerTab();
             
             if (btn) {
+                btn.innerHTML = originalIcon;
                 btn.disabled = !hasMoreHistory;
                 btn.style.opacity = hasMoreHistory ? '1' : '0.2';
             }
@@ -3079,9 +3107,12 @@
 
         window.fetchLinkChunk7Days = async () => {
             const btn = document.getElementById('btn-fetch-links');
+            let originalIcon = '';
             if (btn) {
+                originalIcon = btn.innerHTML;
+                btn.innerHTML = '<div class="loader-spinner" style="width:16px;height:16px;border-width:2px;"></div>';
                 btn.disabled = true;
-                btn.style.opacity = '0.5';
+                btn.style.opacity = '1';
             }
             
             if (oldestMessageTime) {
@@ -3095,6 +3126,7 @@
             }
             
             if (btn) {
+                btn.innerHTML = originalIcon;
                 btn.disabled = !hasMoreHistory;
                 btn.style.opacity = hasMoreHistory ? '1' : '0.2';
             }
