@@ -881,13 +881,41 @@
             cursor: pointer;
             font-size: 12px;
         }
+
+        .img-wrapper {
+            position: relative;
+            min-height: 100px;
+            min-width: 100px;
+            border-radius: 12px;
+            background: rgba(0, 0, 0, 0.05);
+            margin-top: 8px;
+            overflow: hidden;
+            display: inline-block;
+        }
+        @media (prefers-color-scheme: dark) {
+            .img-wrapper { background: rgba(255, 255, 255, 0.05); }
+        }
+        .img-loading-spinner {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            border: 3px solid var(--input-border);
+            border-top: 3px solid #7c3aed;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
         .chat-img {
             max-width: 100%;
             border-radius: 12px;
-            margin-top: 8px;
             cursor: pointer;
             display: block;
+            position: relative;
+            z-index: 1;
         }
+        
         .btn-attach {
             background: none;
             border: none;
@@ -1132,6 +1160,19 @@
         const defaultFavicon = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0%25' stop-color='%237c3aed'/%3E%3Cstop offset='100%25' stop-color='%234ca1af'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='100' height='100' rx='24' fill='url(%23g)'/%3E%3Cg opacity='0.95'%3E%3Cpath d='M 45 25 H 55 V 43 L 73 71 V 75 H 27 V 71 L 45 43 Z' fill='%23ffffff' stroke='%23ffffff' stroke-width='8' stroke-linejoin='round'/%3E%3Crect x='39' y='20' width='22' height='6' rx='3' fill='%23ffffff'/%3E%3C/g%3E%3Cpath d='M 38 56 C 38 49, 43 44, 50 44 C 57 44, 62 49, 62 56 C 62 63, 57 68, 50 68 H 44 L 38 74 V 66 C 38 64, 38 61, 38 56 Z' fill='url(%23g)'/%3E%3Ccircle cx='50' cy='34' r='2.5' fill='url(%23g)'/%3E%3Ccircle cx='54' cy='27' r='1.5' fill='url(%23g)'/%3E%3Ccircle cx='50' cy='11' r='3' fill='%23ffffff'/%3E%3Ccircle cx='57' cy='5' r='1.5' fill='%23ffffff'/%3E%3Ccircle cx='43' cy='15' r='2' fill='%23ffffff'/%3E%3C/svg%3E";
         const alertFavicon = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0%25' stop-color='%237c3aed'/%3E%3Cstop offset='100%25' stop-color='%234ca1af'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='100' height='100' rx='24' fill='url(%23g)'/%3E%3Cg opacity='0.95'%3E%3Cpath d='M 45 25 H 55 V 43 L 73 71 V 75 H 27 V 71 L 45 43 Z' fill='%23ffffff' stroke='%23ffffff' stroke-width='8' stroke-linejoin='round'/%3E%3Crect x='39' y='20' width='22' height='6' rx='3' fill='%23ffffff'/%3E%3C/g%3E%3Cpath d='M 38 56 C 38 49, 43 44, 50 44 C 57 44, 62 49, 62 56 C 62 63, 57 68, 50 68 H 44 L 38 74 V 66 C 38 64, 38 61, 38 56 Z' fill='url(%23g)'/%3E%3Ccircle cx='50' cy='34' r='2.5' fill='url(%23g)'/%3E%3Ccircle cx='54' cy='27' r='1.5' fill='url(%23g)'/%3E%3Ccircle cx='50' cy='11' r='3' fill='%23ffffff'/%3E%3Ccircle cx='57' cy='5' r='1.5' fill='%23ffffff'/%3E%3Ccircle cx='43' cy='15' r='2' fill='%23ffffff'/%3E%3Ccircle cx='85' cy='15' r='14' fill='%23ff5555'/%3E%3C/svg%3E";
 
+        window.handleChatImageError = function(img, time) {
+            const spinner = img.previousElementSibling;
+            if (spinner && spinner.classList.contains('img-loading-spinner')) {
+                spinner.style.display = 'none';
+            }
+            const now = Date.now();
+            if (time && (now - time >= 604800000)) {
+                img.src = fallbackImageSvg;
+                img.onclick = null;
+                img.style.cursor = 'default';
+            }
+        };
+
         function setFaviconAlert(showAlert) {
             const link = document.getElementById('dynamic-favicon');
             if (link) {
@@ -1172,10 +1213,13 @@
         });
 
         function setupPasteListener() {
-            window.addEventListener('paste', (e) => {
-                const items = e.clipboardData.items;
+            document.addEventListener('paste', (e) => {
+                const clipboardData = e.clipboardData || window.clipboardData;
+                if (!clipboardData) return;
+                const items = clipboardData.items;
                 for (let i = 0; i < items.length; i++) {
-                    if (items[i].type.indexOf('image') !== -1) {
+                    if (items[i].kind === 'file' && items[i].type.indexOf('image') !== -1) {
+                        e.preventDefault();
                         const file = items[i].getAsFile();
                         setPendingImage(file);
                         break;
@@ -1915,11 +1959,11 @@
             }
             
             if (data.imageUrl) {
-                html += `<img src="${data.imageUrl}" class="chat-img" onerror="this.onerror=null; this.src='${fallbackImageSvg}'; this.onclick=null; this.style.cursor='default';" onclick="window.open('${data.imageUrl}', '_blank')">`;
+                html += `<div class="img-wrapper"><div class="img-loading-spinner"></div><img src="${data.imageUrl}" class="chat-img" loading="lazy" onload="this.previousElementSibling.style.display='none';" onerror="window.handleChatImageError(this, ${data.time || 0})" onclick="window.open('${data.imageUrl}', '_blank')"></div>`;
             }
             
             if (currentText && currentText !== 'reaction' && data.type !== 'reaction') {
-                html += `<div style="margin-top: ${data.imageUrl ? '8px' : '0'};">${parseLinks(escapeHtml(currentText))}</div>`;
+                html += `<div>${parseLinks(escapeHtml(currentText))}</div>`;
             }
             
             html += `</div>`;
@@ -1967,15 +2011,18 @@
                     if (replyBlock) replyHtml = replyBlock.outerHTML;
 
                     let imgHtml = '';
-                    const existingImg = bubble.querySelector('.chat-img');
-                    if (existingImg) {
-                        imgHtml = existingImg.outerHTML;
+                    const existingImgWrapper = bubble.querySelector('.img-wrapper');
+                    if (existingImgWrapper) {
+                        imgHtml = existingImgWrapper.outerHTML;
+                    } else {
+                        const existingImg = bubble.querySelector('.chat-img');
+                        if (existingImg) imgHtml = existingImg.outerHTML;
                     }
 
                     const newText = editsState[key] ? editsState[key].text : "삭제됨";
                     let textHtml = '';
                     if (newText && newText !== 'reaction') {
-                        textHtml = `<div style="margin-top: ${existingImg ? '8px' : '0'};">${parseLinks(escapeHtml(newText))}</div>`;
+                        textHtml = `<div>${parseLinks(escapeHtml(newText))}</div>`;
                     }
 
                     bubble.innerHTML = replyHtml + imgHtml + textHtml;
@@ -2074,13 +2121,13 @@
                             
                             let imgHtml = '';
                             if (data.imageUrl) {
-                                imgHtml = `<img src="${data.imageUrl}" class="chat-img" onerror="this.onerror=null; this.src='${fallbackImageSvg}'; this.onclick=null; this.style.cursor='default';" onclick="window.open('${data.imageUrl}', '_blank')">`;
+                                imgHtml = `<div class="img-wrapper"><div class="img-loading-spinner"></div><img src="${data.imageUrl}" class="chat-img" loading="lazy" onload="this.previousElementSibling.style.display='none';" onerror="window.handleChatImageError(this, ${data.time || 0})" onclick="window.open('${data.imageUrl}', '_blank')"></div>`;
                             }
 
                             const newText = editsState[key] ? editsState[key].text : data.text;
                             let textHtml = '';
                             if (newText && newText !== 'reaction' && data.type !== 'reaction') {
-                                textHtml = `<div style="margin-top: ${data.imageUrl ? '8px' : '0'};">${parseLinks(escapeHtml(newText))}</div>`;
+                                textHtml = `<div>${parseLinks(escapeHtml(newText))}</div>`;
                             }
 
                             bubble.innerHTML = replyHtml + imgHtml + textHtml;
