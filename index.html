@@ -344,17 +344,24 @@
             color: #1a73e8;
         }
 
-        .btn-logout {
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-drawer-toggle {
             font-size: 12px;
             color: var(--sub-text-color);
             border: 1px solid var(--input-border);
             background: transparent;
-            padding: 6px 12px;
+            padding: 6px 10px;
             border-radius: 16px;
             cursor: pointer;
             transition: 0.2s;
             display: flex;
             align-items: center;
+            justify-content: center;
             gap: 4px;
         }
 
@@ -425,6 +432,7 @@
             cursor: pointer;
             user-select: none;
             -webkit-touch-callout: none;
+            transition: background-color 0.3s;
         }
 
         .msg-row.me .bubble {
@@ -513,7 +521,6 @@
                 opacity: 0;
                 transform: translateY(12px) scale(0.96);
             }
-
             to {
                 opacity: 1;
                 transform: translateY(0) scale(1);
@@ -582,6 +589,8 @@
             border-top: 1px solid var(--header-border);
             display: flex;
             flex-direction: column;
+            z-index: 60;
+            position: relative;
         }
 
         #reply-preview {
@@ -604,7 +613,6 @@
                 transform: translateY(100%);
                 opacity: 0;
             }
-
             to {
                 transform: translateY(0);
                 opacity: 1;
@@ -714,6 +722,34 @@
             pointer-events: auto;
         }
 
+        /* Jump Return Toast */
+        #return-toast {
+            position: absolute;
+            bottom: 130px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(124, 58, 237, 0.95);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 13px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(124, 58, 237, 0.3);
+            z-index: 50;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s, transform 0.3s;
+        }
+
+        #return-toast.show {
+            opacity: 1;
+            pointer-events: auto;
+            transform: translate(-50%, -10px);
+        }
+
         /* Context Menu */
         #context-menu {
             position: fixed;
@@ -764,7 +800,6 @@
             transform: scale(1.2);
         }
 
-        /* Backdrop for mobile to catch touches */
         #cm-backdrop {
             position: fixed;
             top: 0; left: 0; right: 0; bottom: 0;
@@ -926,12 +961,153 @@
             align-items: center;
             justify-content: center;
         }
+
+        /* Workspace Drawer Styles */
+        #drawer-backdrop {
+            position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.4); z-index: 100;
+            display: none; opacity: 0; transition: opacity 0.3s;
+        }
+        #drawer-backdrop.show { display: block; opacity: 1; }
+        #lab-drawer {
+            position: absolute; top: 0; right: -320px;
+            width: 320px; max-width: 100%; height: 100%;
+            background: var(--app-bg); z-index: 101;
+            transition: right 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            box-shadow: -4px 0 20px rgba(0,0,0,0.1);
+            display: flex; flex-direction: column;
+            border-left: 1px solid var(--header-border);
+        }
+        #lab-drawer.open { right: 0; }
+        .drawer-header {
+            padding: 16px; display: flex; justify-content: space-between;
+            align-items: center; border-bottom: 1px solid var(--header-border);
+            background: var(--header-bg);
+        }
+        .drawer-title { font-weight: bold; font-size: 15px; display: flex; align-items: center; gap: 6px; }
+        .btn-close-drawer { background: none; border: none; font-size: 18px; color: var(--sub-text-color); cursor: pointer; }
+        .drawer-tabs { display: flex; border-bottom: 1px solid var(--header-border); background: var(--input-bg); }
+        .tab-btn {
+            flex: 1; padding: 12px 0; background: none; border: none;
+            cursor: pointer; color: var(--sub-text-color); font-size: 13px;
+            font-weight: bold; transition: 0.2s;
+        }
+        .tab-btn.active { color: #7c3aed; border-bottom: 2px solid #7c3aed; background: var(--app-bg); }
+        
+        .drawer-body { flex: 1; overflow-y: auto; display: flex; flex-direction: column; position: relative; }
+        .tab-content { display: none; padding: 16px; flex: 1; }
+        .tab-content.active { display: block; }
+        
+        /* Drawer Controls & Notice */
+        .subtle-notice {
+            font-size: 10px; color: var(--sub-text-color); text-align: center;
+            margin-bottom: 12px; opacity: 0.7; word-break: keep-all; line-height: 1.3;
+        }
+        .icon-btn-fetch {
+            display: flex; justify-content: center; align-items: center;
+            width: 40px; height: 40px; margin: 16px auto; border-radius: 50%;
+            background: var(--input-bg); border: 1px solid var(--input-border);
+            color: var(--sub-text-color); cursor: pointer; transition: 0.2s;
+        }
+        .icon-btn-fetch:hover:not(:disabled) { background: var(--header-border); color: #7c3aed; transform: scale(1.05); }
+        .icon-btn-fetch:active:not(:disabled) { transform: scale(0.95); }
+        .icon-btn-fetch:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        /* Album Grid */
+        .album-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+        .album-item-container {
+            aspect-ratio: 1; position: relative; border-radius: 10px;
+            overflow: hidden; background: rgba(0,0,0,0.03); cursor: pointer;
+            border: 1px solid var(--header-border);
+        }
+        @media (prefers-color-scheme: dark) { .album-item-container { background: rgba(255,255,255,0.03); } }
+        .album-img { width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity 0.3s; }
+        .album-img.loaded { opacity: 1; }
+        .album-item-container.expired-asset img { filter: blur(4px) grayscale(50%); opacity: 0.6; }
+        .badge-expired {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.65); color: white; padding: 4px 8px;
+            border-radius: 6px; font-size: 10px; font-weight: bold;
+            white-space: nowrap; pointer-events: none; backdrop-filter: blur(2px);
+        }
+        
+        /* Links List */
+        .links-list { display: flex; flex-direction: column; gap: 12px; }
+        .link-card {
+            padding: 12px; border: 1px solid var(--header-border); border-radius: 10px;
+            background: var(--input-bg); display: flex; flex-direction: column; gap: 6px; transition: 0.2s;
+        }
+        .link-card:hover { border-color: #4ca1af; background: var(--app-bg); }
+        .link-url { font-size: 13px; color: #1a73e8; font-weight: bold; word-break: break-all; cursor: pointer;}
+        .link-context {
+            font-size: 11px; color: var(--sub-text-color); display: -webkit-box;
+            -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+            border-top: 1px dashed var(--header-border); padding-top: 6px;
+        }
+        .btn-jump-link {
+            background: var(--reply-bg); border: 1px solid var(--header-border);
+            color: var(--text-color); border-radius: 6px; padding: 6px 10px;
+            font-size: 11px; cursor: pointer; display: flex; align-items: center;
+            justify-content: center; gap: 4px; transition: 0.2s; margin-top: 4px;
+        }
+        .btn-jump-link:hover { background: var(--header-border); color: #7c3aed; }
+
+        /* Search Tab */
+        #drawer-search-input {
+            width: 100%; padding: 12px; border: 1px solid var(--input-border);
+            border-radius: 8px; background: var(--input-bg); color: var(--text-color);
+            margin-bottom: 16px; outline: none; font-size: 13px; transition: 0.2s;
+        }
+        #drawer-search-input:focus { border-color: #7c3aed; background: var(--app-bg); }
+        .search-result-item {
+            padding: 12px; border-bottom: 1px solid var(--header-border); cursor: pointer;
+            border-radius: 8px; transition: 0.2s; margin-bottom: 4px;
+        }
+        .search-result-item:hover { background: var(--reply-bg); }
+        .sr-nick { font-size: 11px; font-weight: bold; margin-bottom: 4px; color: #7c3aed; }
+        .sr-text {
+            font-size: 13px; color: var(--text-color); display: -webkit-box;
+            -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+            line-height: 1.4; word-break: break-all;
+        }
+        .highlight {
+            background: #fef01b; color: #3b1e1e; font-weight: bold;
+            border-radius: 2px; padding: 0 2px; box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        }
+        
+        /* Main Chat Flash Animation */
+        @keyframes flash-highlight {
+            0% { background-color: #fef01b; }
+            100% { background-color: transparent; }
+        }
+        @media (prefers-color-scheme: dark) {
+            @keyframes flash-highlight {
+                0% { background-color: #9b7700; }
+                100% { background-color: transparent; }
+            }
+        }
+        .flash-active { border-radius: 8px; animation: flash-highlight 2s ease-out; }
+
+        /* Drawer Footer (Logout) */
+        .drawer-footer { padding: 16px; border-top: 1px solid var(--header-border); background: var(--header-bg); }
+        .btn-logout-drawer {
+            width: 100%; padding: 12px; background: var(--input-bg);
+            border: 1px solid var(--input-border); border-radius: 8px;
+            color: var(--sub-text-color); font-size: 13px; font-weight: bold;
+            cursor: pointer; transition: 0.2s; display: flex; justify-content: center;
+            align-items: center; gap: 6px;
+        }
+        .btn-logout-drawer:hover { background: #fdf2f2; border-color: #fadada; color: #e74c3c; }
+        @media (prefers-color-scheme: dark) {
+            .btn-logout-drawer:hover { background: #2c1a1a; border-color: #4a2a2a; color: #ff8a8a; }
+        }
     </style>
 </head>
 
 <body>
 
     <div class="app-container">
+        <!-- Login Screen -->
         <div id="login-screen" class="screen">
             <div class="login-box">
                 <svg class="main-logo-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
@@ -1020,25 +1196,30 @@
             </div>
         </div>
 
+        <!-- Chat Screen -->
         <div id="chat-screen" class="screen hidden">
             <div class="chat-header">
                 <div class="header-info">
                     <span class="room-name">Laboratory</span>
                     <span class="my-nick" id="my-nick-display">...</span>
                 </div>
-                <button class="btn-logout" onclick="handleLogout()">
-                    <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
-                        <path
-                            d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z" />
-                    </svg>
-                    로그아웃
-                </button>
+                <div class="header-actions">
+                    <button class="btn-drawer-toggle" onclick="toggleDrawer()">
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/></svg>
+                    </button>
+                </div>
             </div>
 
             <div id="chat-area" class="chat-area"></div>
+            <div id="chat-area-jump" class="chat-area hidden"></div>
 
             <div id="new-msg-alert" onclick="scrollToBottom()">
                 <span>새 메시지</span>
+            </div>
+            
+            <div id="return-toast" onclick="returnToOriginalPosition()">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+                <span>원래 위치로 돌아가기</span>
             </div>
 
             <div class="input-wrapper">
@@ -1068,8 +1249,56 @@
                 </div>
             </div>
         </div>
+        
+        <!-- Workspace Drawer -->
+        <div id="drawer-backdrop" onclick="toggleDrawer()"></div>
+        <div id="lab-drawer">
+            <div class="drawer-header">
+                <div class="drawer-title">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.06-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61 l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41 h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.73,8.87 C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58C4.84,11.36,4.8,11.69,4.8,12s0.02,0.64,0.06,0.94l-2.03,1.58 c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54 c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.43-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96 c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.49-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6 s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z"/></svg>
+                    Workspace
+                </div>
+                <button class="btn-close-drawer" onclick="toggleDrawer()">✕</button>
+            </div>
+            <div class="drawer-tabs">
+                <button class="tab-btn active" onclick="switchDrawerTab('search')">검색</button>
+                <button class="tab-btn" onclick="switchDrawerTab('album')">앨범</button>
+                <button class="tab-btn" onclick="switchDrawerTab('links')">링크</button>
+            </div>
+            <div class="drawer-body">
+                <div class="tab-content active" id="drawer-tab-search">
+                    <input type="text" id="drawer-search-input" placeholder="메시지 검색..." oninput="handleSearchInput(event)">
+                    <div id="search-results-container"></div>
+                </div>
+                
+                <div class="tab-content" id="drawer-tab-album">
+                    <div class="subtle-notice">* 보안 및 용량 관리를 위해 7일이 경과한 미디어는 파기됩니다.</div>
+                    <div class="album-grid" id="album-grid"></div>
+                    <button class="icon-btn-fetch" id="btn-fetch-album" onclick="fetchAlbumChunk()" title="과거 기록 탐색">
+                        <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M13 3a9 9 0 0 0-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42A8.954 8.954 0 0 0 13 21a9 9 0 0 0 0-18zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z"/></svg>
+                    </button>
+                </div>
+                
+                <div class="tab-content" id="drawer-tab-links">
+                    <div class="links-list" id="links-list"></div>
+                    <button class="icon-btn-fetch" id="btn-fetch-links" onclick="fetchLinkChunk7Days()" title="과거 7일 탐색">
+                        <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M13 3a9 9 0 0 0-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42A8.954 8.954 0 0 0 13 21a9 9 0 0 0 0-18zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z"/></svg>
+                    </button>
+                </div>
+            </div>
+            <div class="drawer-footer">
+                <button class="btn-logout-drawer" onclick="handleLogout()">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+                        <path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z" />
+                    </svg>
+                    로그아웃
+                </button>
+            </div>
+        </div>
+
     </div>
 
+    <!-- Custom Modal -->
     <div id="custom-modal-backdrop">
         <div id="custom-modal-box">
             <div class="modal-icon-container" id="custom-modal-icon"></div>
@@ -1079,6 +1308,7 @@
         </div>
     </div>
 
+    <!-- Context Menu -->
     <div id="cm-backdrop" onclick="closeContextMenu()"></div>
     <div id="context-menu">
         <div class="cm-reactions">
@@ -1111,10 +1341,11 @@
 
     <script type="module">
         import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getDatabase, ref, push, update, onChildAdded, onChildChanged, serverTimestamp, query, limitToLast, orderByKey, endBefore, get } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+        import { getDatabase, ref, push, update, onChildAdded, onChildChanged, serverTimestamp, query, limitToLast, limitToFirst, orderByKey, endAt, startAfter, get } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
         import { getAuth, signInAnonymously, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
         import { getStorage, ref as sRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
 
+        // Firebase Configuration
         const baseConfig = {
             authDomain: "shoga-intermediary.firebaseapp.com",
             projectId: "shoga-intermediary",
@@ -1134,6 +1365,7 @@
         let lastMessageDateStr = "";
 
         let oldestMessageKey = null;
+        let oldestMessageTime = null;
         let isFirstLoadEvent = true;
         let isLoadingHistory = false;
         let hasMoreHistory = true;
@@ -1143,20 +1375,22 @@
         let currentContextMenuKey = null;
         let pendingImageFile = null;
 
+        // Jump View Trackers
+        let isJumpActive = false;
+        let preJumpScrollTop = 0;
+        let searchTimeout;
+
         const reactionsState = {};
         const editsState = {};
+        window.globalChatData =[]; 
 
         const EMOJI_MAP = {
-            '👍': 'Emoji_Thumbsup',
-            '❤️': 'Emoji_Heart',
-            '😂': 'Emoji_Joy',
-            '😮': 'Emoji_Surprised',
-            '😢': 'Emoji_Sad',
-            '🥺': 'Emoji_Pleading'
+            '👍': 'Emoji_Thumbsup', '❤️': 'Emoji_Heart', '😂': 'Emoji_Joy', '😮': 'Emoji_Surprised', '😢': 'Emoji_Sad', '🥺': 'Emoji_Pleading'
         };
-        const REVERSE_EMOJI_MAP = Object.fromEntries(Object.entries(EMOJI_MAP).map(([k, v]) => [v, k]));
-        const fallbackImageSvg = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='150' viewBox='0 0 200 150'%3E%3Crect width='200' height='150' fill='rgba(128,128,128,0.2)' rx='12'/%3E%3Ctext x='100' y='75' font-family='sans-serif' font-size='14' font-weight='bold' fill='%23888' text-anchor='middle' dominant-baseline='middle'%3E이미지 기한만료%3C/text%3E%3C/svg%3E";
-
+        const REVERSE_EMOJI_MAP = Object.fromEntries(Object.entries(EMOJI_MAP).map(([k, v]) =>[v, k]));
+        
+        // Static Resources for Placeholders & Fallbacks
+        const fallbackImageSvg = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='150' viewBox='0 0 200 150'%3E%3Crect width='200' height='150' fill='rgba(128,128,128,0.2)' rx='12'/%3E%3Ctext x='100' y='75' font-family='sans-serif' font-size='14' font-weight='bold' fill='%23888' text-anchor='middle' dominant-baseline='middle'%3E기한 만료%3C/text%3E%3C/svg%3E";
         const defaultFavicon = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0%25' stop-color='%237c3aed'/%3E%3Cstop offset='100%25' stop-color='%234ca1af'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='100' height='100' rx='24' fill='url(%23g)'/%3E%3Cg opacity='0.95'%3E%3Cpath d='M 45 25 H 55 V 43 L 73 71 V 75 H 27 V 71 L 45 43 Z' fill='%23ffffff' stroke='%23ffffff' stroke-width='8' stroke-linejoin='round'/%3E%3Crect x='39' y='20' width='22' height='6' rx='3' fill='%23ffffff'/%3E%3C/g%3E%3Cpath d='M 38 56 C 38 49, 43 44, 50 44 C 57 44, 62 49, 62 56 C 62 63, 57 68, 50 68 H 44 L 38 74 V 66 C 38 64, 38 61, 38 56 Z' fill='url(%23g)'/%3E%3Ccircle cx='50' cy='34' r='2.5' fill='url(%23g)'/%3E%3Ccircle cx='54' cy='27' r='1.5' fill='url(%23g)'/%3E%3Ccircle cx='50' cy='11' r='3' fill='%23ffffff'/%3E%3Ccircle cx='57' cy='5' r='1.5' fill='%23ffffff'/%3E%3Ccircle cx='43' cy='15' r='2' fill='%23ffffff'/%3E%3C/svg%3E";
         const alertFavicon = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0%25' stop-color='%237c3aed'/%3E%3Cstop offset='100%25' stop-color='%234ca1af'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='100' height='100' rx='24' fill='url(%23g)'/%3E%3Cg opacity='0.95'%3E%3Cpath d='M 45 25 H 55 V 43 L 73 71 V 75 H 27 V 71 L 45 43 Z' fill='%23ffffff' stroke='%23ffffff' stroke-width='8' stroke-linejoin='round'/%3E%3Crect x='39' y='20' width='22' height='6' rx='3' fill='%23ffffff'/%3E%3C/g%3E%3Cpath d='M 38 56 C 38 49, 43 44, 50 44 C 57 44, 62 49, 62 56 C 62 63, 57 68, 50 68 H 44 L 38 74 V 66 C 38 64, 38 61, 38 56 Z' fill='url(%23g)'/%3E%3Ccircle cx='50' cy='34' r='2.5' fill='url(%23g)'/%3E%3Ccircle cx='54' cy='27' r='1.5' fill='url(%23g)'/%3E%3Ccircle cx='50' cy='11' r='3' fill='%23ffffff'/%3E%3Ccircle cx='57' cy='5' r='1.5' fill='%23ffffff'/%3E%3Ccircle cx='43' cy='15' r='2' fill='%23ffffff'/%3E%3Ccircle cx='85' cy='15' r='14' fill='%23ff5555'/%3E%3C/svg%3E";
 
@@ -1165,12 +1399,18 @@
             if (spinner && spinner.classList.contains('img-loading-spinner')) {
                 spinner.style.display = 'none';
             }
-            const now = Date.now();
-            if (time && (now - time >= 604800000)) {
-                img.src = fallbackImageSvg;
-                img.onclick = null;
-                img.style.cursor = 'default';
-            }
+            img.src = fallbackImageSvg;
+            img.onclick = null;
+            img.style.cursor = 'default';
+        };
+
+        window.handleAlbumImageError = function(img, time) {
+            const container = img.parentElement;
+            const spinner = container.querySelector('.img-loading-spinner');
+            if (spinner) spinner.style.display = 'none';
+            
+            container.classList.add('is-error');
+            container.innerHTML = '<svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg><span style="margin-top:4px;">유실됨</span>';
         };
 
         function setFaviconAlert(showAlert) {
@@ -1252,9 +1492,9 @@
 
         function setupContextMenuListeners() {
             const chatArea = document.getElementById('chat-area');
-            let longPressTimer;
-
-            chatArea.addEventListener('contextmenu', (e) => {
+            const jumpArea = document.getElementById('chat-area-jump');
+            
+            const handleContext = (e) => {
                 const bubble = e.target.closest('.bubble');
                 if (bubble) {
                     e.preventDefault();
@@ -1263,9 +1503,10 @@
                         showContextMenu(e.pageX, e.pageY, msgRow.dataset.key);
                     }
                 }
-            });
+            };
 
-            chatArea.addEventListener('touchstart', (e) => {
+            let longPressTimer;
+            const handleTouchStart = (e) => {
                 const bubble = e.target.closest('.bubble');
                 if (bubble) {
                     longPressTimer = setTimeout(() => {
@@ -1276,15 +1517,19 @@
                         }
                     }, 500);
                 }
-            }, { passive: true });
+            };
 
-            chatArea.addEventListener('touchend', () => clearTimeout(longPressTimer));
-            chatArea.addEventListener('touchmove', () => clearTimeout(longPressTimer));
-            chatArea.addEventListener('touchcancel', () => clearTimeout(longPressTimer));
+            const clearTouch = () => clearTimeout(longPressTimer);[chatArea, jumpArea].forEach(area => {
+                area.addEventListener('contextmenu', handleContext);
+                area.addEventListener('touchstart', handleTouchStart, { passive: true });
+                area.addEventListener('touchend', clearTouch);
+                area.addEventListener('touchmove', clearTouch);
+                area.addEventListener('touchcancel', clearTouch);
+            });
         }
 
         function setupSwipeToReplyListeners() {
-            const chatArea = document.getElementById('chat-area');
+            const areas =[document.getElementById('chat-area'), document.getElementById('chat-area-jump')];
             let startX = 0;
             let startY = 0;
             let currentX = 0;
@@ -1292,85 +1537,87 @@
             let swipedRow = null;
             const threshold = 60;
 
-            chatArea.addEventListener('touchstart', (e) => {
-                const msgRow = e.target.closest('.msg-row');
-                if (!msgRow) return;
+            areas.forEach(chatArea => {
+                chatArea.addEventListener('touchstart', (e) => {
+                    const msgRow = e.target.closest('.msg-row');
+                    if (!msgRow) return;
 
-                if (e.target.closest('.chat-link') || e.target.closest('.chat-img')) return;
+                    if (e.target.closest('.chat-link') || e.target.closest('.chat-img')) return;
 
-                startX = e.touches[0].clientX;
-                startY = e.touches[0].clientY;
-                currentX = startX;
-                isSwiping = false;
-                swipedRow = msgRow;
-                
-                swipedRow.style.transition = 'none';
-            }, { passive: true });
+                    startX = e.touches[0].clientX;
+                    startY = e.touches[0].clientY;
+                    currentX = startX;
+                    isSwiping = false;
+                    swipedRow = msgRow;
+                    
+                    swipedRow.style.transition = 'none';
+                }, { passive: true });
 
-            chatArea.addEventListener('touchmove', (e) => {
-                if (!swipedRow) return;
+                chatArea.addEventListener('touchmove', (e) => {
+                    if (!swipedRow) return;
 
-                currentX = e.touches[0].clientX;
-                const currentY = e.touches[0].clientY;
-                const diffX = currentX - startX;
-                const diffY = currentY - startY;
+                    currentX = e.touches[0].clientX;
+                    const currentY = e.touches[0].clientY;
+                    const diffX = currentX - startX;
+                    const diffY = currentY - startY;
 
-                if (!isSwiping) {
-                    if (Math.abs(diffX) > 10 || Math.abs(diffY) > 10) {
-                        if (Math.abs(diffY) > Math.abs(diffX) * 0.8) {
-                            swipedRow.style.transition = 'transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1)';
-                            swipedRow.style.transform = 'translateX(0)';
-                            swipedRow = null;
-                            return;
+                    if (!isSwiping) {
+                        if (Math.abs(diffX) > 10 || Math.abs(diffY) > 10) {
+                            if (Math.abs(diffY) > Math.abs(diffX) * 0.8) {
+                                swipedRow.style.transition = 'transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1)';
+                                swipedRow.style.transform = 'translateX(0)';
+                                swipedRow = null;
+                                return;
+                            } else {
+                                isSwiping = true;
+                            }
                         } else {
-                            isSwiping = true;
+                            return;
                         }
-                    } else {
-                        return;
                     }
-                }
 
-                if (isSwiping) {
-                    if (e.cancelable) e.preventDefault();
-                    if (diffX < 0) {
-                        let moveX = diffX;
-                        if (moveX < -threshold) {
-                            const extra = moveX + threshold;
-                            moveX = -threshold + (extra * 0.3);
+                    if (isSwiping) {
+                        if (e.cancelable) e.preventDefault();
+                        if (diffX < 0) {
+                            let moveX = diffX;
+                            if (moveX < -threshold) {
+                                const extra = moveX + threshold;
+                                moveX = -threshold + (extra * 0.3);
+                            }
+                            swipedRow.style.transform = `translateX(${moveX}px)`;
+                        } else {
+                            swipedRow.style.transform = `translateX(${diffX * 0.1}px)`;
                         }
-                        swipedRow.style.transform = `translateX(${moveX}px)`;
-                    } else {
-                        swipedRow.style.transform = `translateX(${diffX * 0.1}px)`;
                     }
-                }
-            }, { passive: false });
+                }, { passive: false });
 
-            chatArea.addEventListener('touchend', (e) => {
-                if (!swipedRow) return;
+                chatArea.addEventListener('touchend', (e) => {
+                    if (!swipedRow) return;
 
-                const diffX = currentX - startX;
+                    const diffX = currentX - startX;
 
-                swipedRow.style.transition = 'transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1)';
-                swipedRow.style.transform = 'translateX(0)';
-
-                if (isSwiping && diffX < -threshold) {
-                    triggerReplyFromRow(swipedRow);
-                    if (window.navigator && window.navigator.vibrate) {
-                        window.navigator.vibrate(50);
-                    }
-                }
-
-                swipedRow = null;
-                isSwiping = false;
-            });
-
-            chatArea.addEventListener('touchcancel', () => {
-                if (swipedRow) {
-                    swipedRow.style.transition = 'transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1)';
+                    swipedRow.style.transition = 'transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1)';
                     swipedRow.style.transform = 'translateX(0)';
+
+                    if (isSwiping && diffX < -threshold) {
+                        triggerReplyFromRow(swipedRow);
+                        if (window.navigator && window.navigator.vibrate) {
+                            window.navigator.vibrate(50);
+                        }
+                    }
+
                     swipedRow = null;
-                }
-                isSwiping = false;
+                    isSwiping = false;
+                });
+
+                chatArea.addEventListener('touchcancel', () => {
+                    if (swipedRow) {
+                        swipedRow.style.transition = 'transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1)';
+                        swipedRow.style.transform = 'translateX(0)';
+                        swipedRow = null;
+                    }
+                    isSwiping = false;
+                });
             });
         }
 
@@ -1570,20 +1817,22 @@
                     alertBadge.classList.remove('show');
                 }
 
-                if (chatArea.scrollTop <= 5 && !isLoadingHistory && hasMoreHistory) {
-                    await loadMoreHistory();
+                // Only auto-load history if we are in the main chat view
+                if (chatArea.scrollTop <= 5 && !isLoadingHistory && hasMoreHistory && !chatArea.classList.contains('hidden')) {
+                    await fetchHistoryChunk(100);
                 }
             });
         }
 
         window.scrollToBottom = () => {
+            if(isJumpActive) window.returnToOriginalPosition();
             const chatArea = document.getElementById('chat-area');
             chatArea.scrollTop = chatArea.scrollHeight;
             document.getElementById('new-msg-alert').classList.remove('show');
         };
 
         // Static Resources for Nickname Generation
-        const verbs = [
+        const verbs =[
             "춤추는", "날아다니는", "코딩하는", "노래하는", "잠자는", "라면먹는", "달리는", "멍때리는", "수영하는", "책읽는",
             "게임하는", "청소하는", "요리하는", "여행하는", "꿈꾸는", "기도하는", "운동하는", "산책하는", "운전하는", "공부하는",
             "비트타는", "그림그리는", "소리지르는", "속삭이는", "숨어있는", "야근하는", "출근하는", "퇴근하는", "사랑하는", "미워하는",
@@ -1599,7 +1848,7 @@
             "녹음하는", "방송하는", "스트리밍하는", "채굴하는", "투자하는", "저축하는", "소비하는", "기부하는", "봉사하는", "치료하는", "개발하는"
         ];
 
-        const adjectives = [
+        const adjectives =[
             "행복한", "슬픈", "배고픈", "시크한", "소심한", "용감한", "똑똑한", "수상한", "귀여운", "무서운",
             "화려한", "투명한", "강력한", "게으른", "부지런한", "조용한", "시끄러운", "우아한", "엉뚱한", "섹시한",
             "진지한", "유쾌한", "냉정한", "따뜻한", "친절한", "불친절한", "가난한", "부유한", "건강한", "아픈",
@@ -1615,7 +1864,7 @@
             "지옥에서온", "천국에서온", "미래에서온", "과거에서온", "이세계", "저세상", "킹받는", "야무진", "엄청난", "대단한"
         ];
 
-        const animals = [
+        const animals =[
             "호랑이", "사자", "토끼", "다람쥐", "펭귄", "고양이", "강아지", "쿼카", "알파카", "오리",
             "독수리", "거북이", "판다", "너구리", "여우", "곰돌이", "돌고래", "부엉이", "기린", "코끼리",
             "햄스터", "앵무새", "수달", "하마", "미어캣", "치타", "표범", "재규어", "퓨마", "하이에나",
@@ -1959,7 +2208,13 @@
             }
             
             if (data.imageUrl) {
-                html += `<div class="img-wrapper"><div class="img-loading-spinner"></div><img src="${data.imageUrl}" class="chat-img" loading="lazy" onload="this.previousElementSibling.style.display='none';" onerror="window.handleChatImageError(this, ${data.time || 0})" onclick="window.open('${data.imageUrl}', '_blank')"></div>`;
+                const now = Date.now();
+                const isExpired = data.time && (now - data.time >= 604800000); // 7 days
+                if (isExpired) {
+                    html += `<div class="img-wrapper"><img src="${fallbackImageSvg}" class="chat-img" style="cursor: default;"></div>`;
+                } else {
+                    html += `<div class="img-wrapper"><div class="img-loading-spinner"></div><img src="${data.imageUrl}" class="chat-img" loading="lazy" onload="this.previousElementSibling.style.display='none';" onerror="window.handleChatImageError(this, ${data.time || 0})" onclick="window.open('${data.imageUrl}', '_blank')"></div>`;
+                }
             }
             
             if (currentText && currentText !== 'reaction' && data.type !== 'reaction') {
@@ -2002,8 +2257,8 @@
         }
 
         function updateMessageInDOM(key) {
-            const row = document.querySelector(`.msg-row[data-key="${key}"]`);
-            if (row) {
+            const rows = document.querySelectorAll(`.msg-row[data-key="${key}"]`);
+            rows.forEach(row => {
                 const bubble = row.querySelector('.bubble');
                 if (bubble) {
                     let replyHtml = '';
@@ -2036,7 +2291,7 @@
                         timeEl.classList.add('edited');
                     }
                 }
-            }
+            });
         }
 
         function loadChat() {
@@ -2047,11 +2302,15 @@
 
             isFirstLoadEvent = true;
             oldestMessageKey = null;
+            oldestMessageTime = null;
             hasMoreHistory = true;
 
             get(q).then(() => {
                 const msg = document.getElementById('auth-success-msg');
                 if (msg) msg.remove();
+                
+                // Background Pre-fetching for drastically faster search later
+                setTimeout(silentPreFetch, 3000);
             }).catch(e => console.error(e));
 
             onChildAdded(q, (snapshot) => {
@@ -2060,11 +2319,20 @@
 
                 if (isFirstLoadEvent) {
                     oldestMessageKey = key;
+                    oldestMessageTime = data.time || Date.now();
                     lastMessageDateStr = "";
                     isFirstLoadEvent = false;
                 }
 
                 if (!data) return;
+
+                if (!window.globalChatData.find(m => m.key === key)) {
+                    window.globalChatData.push({ key, data });
+                }
+                
+                if (document.getElementById('lab-drawer').classList.contains('open')) {
+                    refreshActiveDrawerTab();
+                }
 
                 if (data.type === 'reaction') {
                     updateReactionState(data.targetKey, data.emoji, data.uid, data.isAdded);
@@ -2098,6 +2366,13 @@
                 const data = snapshot.val();
                 const key = snapshot.key;
 
+                const idx = window.globalChatData.findIndex(m => m.key === key);
+                if (idx !== -1) window.globalChatData[idx].data = data;
+                
+                if (document.getElementById('lab-drawer').classList.contains('open')) {
+                    refreshActiveDrawerTab();
+                }
+
                 if (data && data.type !== 'reaction' && data.type !== 'edit') {
                     if (data.reactions) {
                         for (const [emojiCode, users] of Object.entries(data.reactions)) {
@@ -2111,8 +2386,8 @@
                         reactionsContainer.innerHTML = renderReactions(key);
                     }
 
-                    const row = document.querySelector(`.msg-row[data-key="${key}"]`);
-                    if (row) {
+                    const rows = document.querySelectorAll(`.msg-row[data-key="${key}"]`);
+                    rows.forEach(row => {
                         const bubble = row.querySelector('.bubble');
                         if (bubble) {
                             let replyHtml = '';
@@ -2121,7 +2396,13 @@
                             
                             let imgHtml = '';
                             if (data.imageUrl) {
-                                imgHtml = `<div class="img-wrapper"><div class="img-loading-spinner"></div><img src="${data.imageUrl}" class="chat-img" loading="lazy" onload="this.previousElementSibling.style.display='none';" onerror="window.handleChatImageError(this, ${data.time || 0})" onclick="window.open('${data.imageUrl}', '_blank')"></div>`;
+                                const now = Date.now();
+                                const isExpired = data.time && (now - data.time >= 604800000);
+                                if (isExpired) {
+                                    imgHtml = `<div class="img-wrapper"><img src="${fallbackImageSvg}" class="chat-img" style="cursor: default;"></div>`;
+                                } else {
+                                    imgHtml = `<div class="img-wrapper"><div class="img-loading-spinner"></div><img src="${data.imageUrl}" class="chat-img" loading="lazy" onload="this.previousElementSibling.style.display='none';" onerror="window.handleChatImageError(this, ${data.time || 0})" onclick="window.open('${data.imageUrl}', '_blank')"></div>`;
+                                }
                             }
 
                             const newText = editsState[key] ? editsState[key].text : data.text;
@@ -2146,13 +2427,47 @@
                                 timeEl.classList.add('edited');
                             }
                         }
-                    }
+                    });
                 }
             });
         }
 
-        async function loadMoreHistory() {
-            if (!oldestMessageKey || !hasMoreHistory || isLoadingHistory) return;
+        async function silentPreFetch() {
+            if (!oldestMessageKey) return;
+            try {
+                // Fetch up to 1000 messages silently in background for instant search
+                const chatRef = ref(db, 'chats/' + currentRoomId);
+                const q = query(chatRef, orderByKey(), endAt(oldestMessageKey), limitToLast(1000));
+                const snapshot = await get(q);
+                
+                if (snapshot.exists()) {
+                    const messages =[];
+                    snapshot.forEach((child) => {
+                        if (!window.globalChatData.find(m => m.key === child.key)) {
+                            messages.push({ key: child.key, data: child.val() });
+                        }
+                    });
+                    
+                    if (messages.length > 0) {
+                        window.globalChatData = messages.concat(window.globalChatData);
+                        // Sort by time just in case
+                        window.globalChatData.sort((a, b) => (a.data.time || 0) - (b.data.time || 0));
+                        oldestMessageKey = window.globalChatData[0].key;
+                        oldestMessageTime = window.globalChatData[0].data.time || oldestMessageTime;
+                        
+                        // If drawer is open, refresh silently
+                        if (document.getElementById('lab-drawer').classList.contains('open')) {
+                            refreshActiveDrawerTab();
+                        }
+                    }
+                }
+            } catch (e) {
+                console.log('Pre-fetch failed', e);
+            }
+        }
+
+        async function fetchHistoryChunk(limitAmount) {
+            if (!oldestMessageKey || !hasMoreHistory || isLoadingHistory) return false;
             isLoadingHistory = true;
 
             const chatArea = document.getElementById('chat-area');
@@ -2166,19 +2481,30 @@
 
             try {
                 const chatRef = ref(db, 'chats/' + currentRoomId);
-                const q = query(chatRef, orderByKey(), endBefore(oldestMessageKey), limitToLast(100));
+                const q = query(chatRef, orderByKey(), endAt(oldestMessageKey), limitToLast(limitAmount));
                 const snapshot = await get(q);
 
                 loadingMsg.remove();
 
                 if (snapshot.exists()) {
-                    const messages = [];
+                    const messages =[];
                     snapshot.forEach((childSnapshot) => {
-                        messages.push({ key: childSnapshot.key, data: childSnapshot.val() });
+                        if (childSnapshot.key !== oldestMessageKey) {
+                            messages.push({ key: childSnapshot.key, data: childSnapshot.val() });
+                        }
                     });
 
                     if (messages.length > 0) {
+                        // Merge into global array
+                        messages.forEach(msg => {
+                            if (!window.globalChatData.find(m => m.key === msg.key)) {
+                                window.globalChatData.unshift(msg);
+                            }
+                        });
+                        window.globalChatData.sort((a, b) => (a.data.time || 0) - (b.data.time || 0));
+
                         oldestMessageKey = messages[0].key;
+                        oldestMessageTime = messages[0].data.time || oldestMessageTime;
 
                         const fragment = document.createDocumentFragment();
                         let chunkLastSenderId = null;
@@ -2264,14 +2590,14 @@
                             }
                         }
 
-                        const firstRow = chatArea.querySelector('.msg-row');
-                        if (firstRow) {
-                            chatArea.insertBefore(fragment, firstRow);
+                        if (firstMsgRow) {
+                            chatArea.insertBefore(fragment, firstMsgRow);
                         } else {
                             chatArea.prepend(fragment);
                         }
 
                         chatArea.scrollTop = chatArea.scrollHeight - oldScrollHeight + currentScrollTop;
+                        return true;
                     } else {
                         hasMoreHistory = false;
                     }
@@ -2281,9 +2607,10 @@
             } catch (e) {
                 console.error("History load error", e);
                 loadingMsg.remove();
+            } finally {
+                isLoadingHistory = false;
             }
-
-            isLoadingHistory = false;
+            return false;
         }
 
         function formatTime(timestamp) {
@@ -2309,7 +2636,7 @@
             yesterday.setDate(now.getDate() - 1);
             const isYesterday = date.getDate() === yesterday.getDate() && date.getMonth() === yesterday.getMonth() && date.getFullYear() === yesterday.getFullYear();
 
-            const days = ['일', '월', '화', '수', '목', '금', '토'];
+            const days =['일', '월', '화', '수', '목', '금', '토'];
             const dayStr = days[date.getDay()];
 
             if (isToday) return `오늘`;
@@ -2373,7 +2700,7 @@
                 return;
             }
 
-            if (isMe || wasAtBottom) {
+            if (!isJumpActive && (isMe || wasAtBottom)) {
                 chatArea.scrollTop = chatArea.scrollHeight;
                 alertBadge.classList.remove('show');
             } else {
@@ -2436,6 +2763,10 @@
             
             if (!text && !pendingImageFile) return;
             if (!user) return;
+
+            if (isJumpActive) {
+                window.returnToOriginalPosition(); // Auto-return when sending msg
+            }
 
             isSending = true;
             btn.disabled = true;
@@ -2509,6 +2840,346 @@
         document.getElementById('nickname-input').addEventListener('keypress', (e) => {
             if (e.key === 'Enter') document.getElementById('api-key-input').focus();
         });
+
+        /* --- Workspace Drawer Functions --- */
+        window.toggleDrawer = () => {
+            const drawer = document.getElementById('lab-drawer');
+            const backdrop = document.getElementById('drawer-backdrop');
+            
+            if (drawer.classList.contains('open')) {
+                drawer.classList.remove('open');
+                backdrop.classList.remove('show');
+            } else {
+                drawer.classList.add('open');
+                backdrop.classList.add('show');
+                refreshActiveDrawerTab();
+            }
+        };
+
+        window.switchDrawerTab = (tabId) => {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            
+            event.currentTarget.classList.add('active');
+            document.getElementById('drawer-tab-' + tabId).classList.add('active');
+            
+            if (tabId === 'album') window.renderAlbum();
+            if (tabId === 'links') window.renderLinks();
+            if (tabId === 'search') document.getElementById('drawer-search-input').focus();
+        };
+
+        function refreshActiveDrawerTab() {
+            const activeTab = document.querySelector('.tab-btn.active');
+            if (activeTab) {
+                if (activeTab.innerText === '앨범') window.renderAlbum();
+                if (activeTab.innerText === '링크') window.renderLinks();
+                if (activeTab.innerText === '검색') {
+                    window.renderSearchResults(document.getElementById('drawer-search-input').value.trim().toLowerCase());
+                }
+            }
+        }
+
+        window.handleSearchInput = (e) => {
+            clearTimeout(searchTimeout);
+            const query = e.target.value.trim().toLowerCase();
+            searchTimeout = setTimeout(() => window.renderSearchResults(query), 150);
+        };
+
+        function highlightText(text, query) {
+            if (!query) return escapeHtml(text);
+            const escapedText = escapeHtml(text);
+            const escapedQuery = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            return escapedText.replace(new RegExp(`(${escapedQuery})`, 'gi'), '<span class="highlight">$1</span>');
+        }
+
+        window.renderSearchResults = (query) => {
+            const container = document.getElementById('search-results-container');
+            container.innerHTML = '';
+            if (!query) return;
+            
+            const matches = window.globalChatData.filter(item => {
+                const text = editsState[item.key] ? editsState[item.key].text : item.data.text;
+                return text && text !== 'reaction' && text.toLowerCase().includes(query);
+            });
+            
+            if (matches.length === 0) {
+                container.innerHTML = '<div style="font-size:12px; color:var(--sub-text-color); text-align:center; margin-top:20px;">일치하는 결과가 없습니다.</div>';
+                return;
+            }
+            
+            [...matches].reverse().forEach(item => {
+                const text = editsState[item.key] ? editsState[item.key].text : item.data.text;
+                const div = document.createElement('div');
+                div.className = 'search-result-item';
+                div.onclick = () => window.scrollToMessage(item.key);
+                div.innerHTML = `<div class="sr-nick">${escapeHtml(formatDisplayNick(item.data.nick))}</div><div class="sr-text">${highlightText(text, query)}</div>`;
+                container.appendChild(div);
+            });
+        };
+
+        window.renderAlbum = () => {
+            const grid = document.getElementById('album-grid');
+            const now = Date.now();
+            grid.innerHTML = '';
+            
+            const mediaItems = window.globalChatData.filter(m => m.data.imageUrl);
+            
+            [...mediaItems].reverse().forEach(item => {
+                const time = item.data.time || 0;
+                const isExpired = (now - time >= 604800000); // 7 days
+                
+                const container = document.createElement('div');
+                container.className = 'album-item-container';
+                
+                if (!isExpired) {
+                    container.onclick = () => window.scrollToMessage(item.key);
+                }
+                
+                if (isExpired) {
+                    container.classList.add('expired-asset');
+                    const img = document.createElement('img');
+                    img.className = 'album-img loaded';
+                    img.src = fallbackImageSvg;
+                    img.style.cursor = 'default';
+                    
+                    const badge = document.createElement('div');
+                    badge.className = 'badge-expired';
+                    badge.innerText = '만료됨';
+                    
+                    container.appendChild(img);
+                    container.appendChild(badge);
+                } else {
+                    const spinner = document.createElement('div');
+                    spinner.className = 'img-loading-spinner';
+                    
+                    const img = document.createElement('img');
+                    img.className = 'album-img';
+                    img.src = item.data.imageUrl;
+                    img.loading = 'lazy';
+                    
+                    img.onload = () => {
+                        spinner.style.display = 'none';
+                        img.classList.add('loaded');
+                    };
+                    img.onerror = () => window.handleAlbumImageError(img, time);
+                    
+                    container.appendChild(spinner);
+                    container.appendChild(img);
+                }
+                grid.appendChild(container);
+            });
+        };
+
+        window.renderLinks = () => {
+            const list = document.getElementById('links-list');
+            list.innerHTML = '';
+            
+            const urlRegex = /(?:https?:\/\/|www\.)[^\s<]+|\b[a-zA-Z0-9.-]+\.(?:com|net|org|kr|co|io|me|info|edu|gov|tv|biz|ai|dev|app|site|shop|wiki|xyz)\b(?:\/[^\s<]*)?/gi;
+            const renderedLinks = new Set();
+            
+            window.globalChatData.slice().reverse().forEach(item => {
+                const text = editsState[item.key] ? editsState[item.key].text : item.data.text;
+                if (!text || text === 'reaction') return;
+                
+                const links = text.match(urlRegex);
+                if (links) {
+                    links.forEach(url => {
+                        let href = (!url.toLowerCase().startsWith('http://') && !url.toLowerCase().startsWith('https://')) ? 'https://' + url : url;
+                        const safeHref = href.replace(/'/g, "\\'").replace(/"/g, "&quot;");
+                        const cardKey = item.key + "_" + href;
+                        
+                        if (renderedLinks.has(cardKey)) return;
+                        renderedLinks.add(cardKey);
+                        
+                        const card = document.createElement('div');
+                        card.className = 'link-card';
+                        card.innerHTML = `
+                            <div class="link-url" onclick="handleLinkClick(event, '${safeHref}')">${escapeHtml(url)}</div>
+                            <div class="link-context">"${escapeHtml(text)}"</div>
+                            <button class="btn-jump-link" onclick="scrollToMessage('${item.key}')">
+                                <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8z"/></svg>
+                                대화 위치 보기
+                            </button>
+                        `;
+                        list.appendChild(card);
+                    });
+                }
+            });
+        };
+
+        /* --- Deep Jump & Contextual Loading Logic --- */
+        function triggerFlash(row) {
+            row.classList.remove('flash-active'); 
+            void row.offsetWidth; 
+            row.classList.add('flash-active');
+            setTimeout(() => row.classList.remove('flash-active'), 2000);
+        }
+
+        window.scrollToMessage = async (key) => {
+            let rowInMain = document.getElementById('chat-area').querySelector(`.msg-row[data-key="${key}"]`);
+            
+            if (!isJumpActive) {
+                preJumpScrollTop = document.getElementById('chat-area').scrollTop;
+                isJumpActive = true;
+            }
+
+            if (window.innerWidth < 800) {
+                window.toggleDrawer();
+            }
+
+            if (rowInMain) {
+                // If it exists in the main chat view DOM
+                document.getElementById('chat-area-jump').classList.add('hidden');
+                document.getElementById('chat-area').classList.remove('hidden');
+                rowInMain.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                triggerFlash(rowInMain);
+                document.getElementById('return-toast').classList.add('show');
+            } else {
+                // It's deeply isolated, fetch and render in isolated view
+                await jumpToExternalMessage(key);
+            }
+        };
+
+        window.returnToOriginalPosition = () => {
+            isJumpActive = false;
+            document.getElementById('chat-area-jump').classList.add('hidden');
+            document.getElementById('chat-area-jump').innerHTML = ''; // clear memory for jump view
+            document.getElementById('chat-area').classList.remove('hidden');
+            document.getElementById('chat-area').scrollTo({ top: preJumpScrollTop, behavior: 'smooth' });
+            document.getElementById('return-toast').classList.remove('show');
+        };
+
+        async function jumpToExternalMessage(key) {
+            showCustomModal({
+                type: 'loading',
+                title: '메시지 불러오는 중...',
+                text: '과거 대화 맥락을 서버에서 가져오고 있습니다.'
+            });
+
+            try {
+                // Fetch up to 100 before (including target)
+                const qBefore = query(ref(db, 'chats/' + currentRoomId), orderByKey(), endAt(key), limitToLast(100));
+                const snapBefore = await get(qBefore);
+
+                // Fetch up to 100 after (excluding target)
+                const qAfter = query(ref(db, 'chats/' + currentRoomId), orderByKey(), startAfter(key), limitToFirst(100));
+                const snapAfter = await get(qAfter);
+
+                let msgs =[];
+                snapBefore.forEach(c => msgs.push({key: c.key, data: c.val()}));
+                snapAfter.forEach(c => msgs.push({key: c.key, data: c.val()}));
+                msgs.sort((a, b) => (a.data.time || 0) - (b.data.time || 0));
+
+                const jumpArea = document.getElementById('chat-area-jump');
+                jumpArea.innerHTML = ''; 
+
+                let chunkLastSenderId = null;
+                let chunkLastMessageTimeStr = "";
+                let chunkLastDateStr = "";
+                const fragment = document.createDocumentFragment();
+
+                msgs.forEach((msgObj) => {
+                    const data = msgObj.data;
+                    const msgKey = msgObj.key;
+                    
+                    if (data.type === 'reaction' || data.type === 'edit') return; 
+
+                    const dateStr = data.time ? formatDateDivider(data.time) : '';
+                    if (dateStr && chunkLastDateStr !== dateStr) {
+                        const divider = document.createElement('div');
+                        divider.className = 'system-msg date-divider';
+                        divider.innerText = dateStr;
+                        fragment.appendChild(divider);
+                        
+                        chunkLastDateStr = dateStr;
+                        chunkLastSenderId = null;
+                        chunkLastMessageTimeStr = "";
+                    }
+                    
+                    const currentSenderId = data.uid || data.nick;
+                    const timeStr = data.time ? formatTime(data.time) : '';
+                    const isSameSender = (chunkLastSenderId === currentSenderId);
+                    const isSameTime = (chunkLastMessageTimeStr === timeStr);
+                    
+                    if (isSameSender && isSameTime) {
+                        const lastRow = fragment.lastElementChild;
+                        if (lastRow && lastRow.classList.contains('msg-row') && !lastRow.querySelector('.edited')) {
+                            const lastTimeEl = lastRow.querySelector('.msg-time');
+                            if (lastTimeEl) lastTimeEl.style.display = 'none';
+                        }
+                    }
+                    
+                    chunkLastSenderId = currentSenderId;
+                    chunkLastMessageTimeStr = timeStr;
+                    
+                    const { html, isMe, isLina, isLia } = createMessageHTML(msgKey, data, isSameSender && isSameTime);
+                    const row = document.createElement('div');
+                    row.dataset.key = msgKey;
+                    row.dataset.nick = data.nick || '';
+                    row.className = `msg-row ${isMe ? 'me' : 'other'} ${isLina ? 'lina-msg' : ''} ${isLia ? 'lia-msg' : ''} ${(isSameSender && isSameTime) ? 'consecutive' : ''}`;
+                    row.innerHTML = html;
+                    
+                    fragment.appendChild(row);
+                });
+
+                jumpArea.appendChild(fragment);
+
+                document.getElementById('chat-area').classList.add('hidden');
+                jumpArea.classList.remove('hidden');
+
+                const targetRow = jumpArea.querySelector(`.msg-row[data-key="${key}"]`);
+                if (targetRow) {
+                    targetRow.scrollIntoView({ behavior: 'auto', block: 'center' }); 
+                    triggerFlash(targetRow);
+                }
+
+                document.getElementById('return-toast').classList.add('show');
+
+            } catch(e) {
+                alert('해당 메시지의 맥락을 불러오는 데 실패했습니다.');
+            } finally {
+                hideCustomModal();
+            }
+        }
+
+        window.fetchAlbumChunk = async () => {
+            const btn = document.getElementById('btn-fetch-album');
+            if (btn) {
+                btn.disabled = true;
+                btn.style.opacity = '0.5';
+            }
+            
+            await fetchHistoryChunk(500);
+            refreshActiveDrawerTab();
+            
+            if (btn) {
+                btn.disabled = !hasMoreHistory;
+                btn.style.opacity = hasMoreHistory ? '1' : '0.2';
+            }
+        };
+
+        window.fetchLinkChunk7Days = async () => {
+            const btn = document.getElementById('btn-fetch-links');
+            if (btn) {
+                btn.disabled = true;
+                btn.style.opacity = '0.5';
+            }
+            
+            if (oldestMessageTime) {
+                const targetTime = oldestMessageTime - (7 * 24 * 60 * 60 * 1000);
+                
+                while (hasMoreHistory && oldestMessageTime > targetTime) {
+                    const success = await fetchHistoryChunk(200);
+                    if (!success) break;
+                }
+                refreshActiveDrawerTab();
+            }
+            
+            if (btn) {
+                btn.disabled = !hasMoreHistory;
+                btn.style.opacity = hasMoreHistory ? '1' : '0.2';
+            }
+        };
 
     </script>
 
