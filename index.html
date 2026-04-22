@@ -2905,9 +2905,7 @@
             if (matches.length === 0) {
                 container.innerHTML = '<div style="font-size:12px; color:var(--sub-text-color); text-align:center; margin-top:20px;">일치하는 결과가 없습니다.</div>';
                 return;
-            }
-            
-            [...matches].reverse().forEach(item => {
+            }[...matches].reverse().forEach(item => {
                 const text = editsState[item.key] ? editsState[item.key].text : item.data.text;
                 const div = document.createElement('div');
                 div.className = 'search-result-item';
@@ -3027,16 +3025,30 @@
                 window.toggleDrawer();
             }
 
+            if (!rowInMain) {
+                showCustomModal({
+                    type: 'loading',
+                    title: '메시지 탐색 중...',
+                    text: '해당 메시지 위치까지 과거 대화를 불러오고 있습니다.'
+                });
+
+                while (hasMoreHistory && !rowInMain) {
+                    await fetchHistoryChunk(200);
+                    rowInMain = document.getElementById('chat-area').querySelector(`.msg-row[data-key="${key}"]`);
+                }
+
+                hideCustomModal();
+            }
+
             if (rowInMain) {
-                // If it exists in the main chat view DOM
                 document.getElementById('chat-area-jump').classList.add('hidden');
                 document.getElementById('chat-area').classList.remove('hidden');
                 rowInMain.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 triggerFlash(rowInMain);
                 document.getElementById('return-toast').classList.add('show');
             } else {
-                // It's deeply isolated, fetch and render in isolated view
-                await jumpToExternalMessage(key);
+                alert('해당 메시지를 불러올 수 없습니다.');
+                window.returnToOriginalPosition();
             }
         };
 
@@ -3048,99 +3060,6 @@
             document.getElementById('chat-area').scrollTo({ top: preJumpScrollTop, behavior: 'smooth' });
             document.getElementById('return-toast').classList.remove('show');
         };
-
-        async function jumpToExternalMessage(key) {
-            showCustomModal({
-                type: 'loading',
-                title: '메시지 불러오는 중...',
-                text: '과거 대화 맥락을 서버에서 가져오고 있습니다.'
-            });
-
-            try {
-                // Fetch up to 100 before (including target)
-                const qBefore = query(ref(db, 'chats/' + currentRoomId), orderByKey(), endAt(key), limitToLast(100));
-                const snapBefore = await get(qBefore);
-
-                // Fetch up to 100 after (excluding target)
-                const qAfter = query(ref(db, 'chats/' + currentRoomId), orderByKey(), startAfter(key), limitToFirst(100));
-                const snapAfter = await get(qAfter);
-
-                let msgs =[];
-                snapBefore.forEach(c => msgs.push({key: c.key, data: c.val()}));
-                snapAfter.forEach(c => msgs.push({key: c.key, data: c.val()}));
-                msgs.sort((a, b) => (a.data.time || 0) - (b.data.time || 0));
-
-                const jumpArea = document.getElementById('chat-area-jump');
-                jumpArea.innerHTML = ''; 
-
-                let chunkLastSenderId = null;
-                let chunkLastMessageTimeStr = "";
-                let chunkLastDateStr = "";
-                const fragment = document.createDocumentFragment();
-
-                msgs.forEach((msgObj) => {
-                    const data = msgObj.data;
-                    const msgKey = msgObj.key;
-                    
-                    if (data.type === 'reaction' || data.type === 'edit') return; 
-
-                    const dateStr = data.time ? formatDateDivider(data.time) : '';
-                    if (dateStr && chunkLastDateStr !== dateStr) {
-                        const divider = document.createElement('div');
-                        divider.className = 'system-msg date-divider';
-                        divider.innerText = dateStr;
-                        fragment.appendChild(divider);
-                        
-                        chunkLastDateStr = dateStr;
-                        chunkLastSenderId = null;
-                        chunkLastMessageTimeStr = "";
-                    }
-                    
-                    const currentSenderId = data.uid || data.nick;
-                    const timeStr = data.time ? formatTime(data.time) : '';
-                    const isSameSender = (chunkLastSenderId === currentSenderId);
-                    const isSameTime = (chunkLastMessageTimeStr === timeStr);
-                    
-                    if (isSameSender && isSameTime) {
-                        const lastRow = fragment.lastElementChild;
-                        if (lastRow && lastRow.classList.contains('msg-row') && !lastRow.querySelector('.edited')) {
-                            const lastTimeEl = lastRow.querySelector('.msg-time');
-                            if (lastTimeEl) lastTimeEl.style.display = 'none';
-                        }
-                    }
-                    
-                    chunkLastSenderId = currentSenderId;
-                    chunkLastMessageTimeStr = timeStr;
-                    
-                    const { html, isMe, isLina, isLia } = createMessageHTML(msgKey, data, isSameSender && isSameTime);
-                    const row = document.createElement('div');
-                    row.dataset.key = msgKey;
-                    row.dataset.nick = data.nick || '';
-                    row.className = `msg-row ${isMe ? 'me' : 'other'} ${isLina ? 'lina-msg' : ''} ${isLia ? 'lia-msg' : ''} ${(isSameSender && isSameTime) ? 'consecutive' : ''}`;
-                    row.innerHTML = html;
-                    
-                    fragment.appendChild(row);
-                });
-
-                jumpArea.appendChild(fragment);
-
-                document.getElementById('chat-area').classList.add('hidden');
-                jumpArea.classList.remove('hidden');
-
-                const targetRow = jumpArea.querySelector(`.msg-row[data-key="${key}"]`);
-                if (targetRow) {
-                    targetRow.scrollIntoView({ behavior: 'auto', block: 'center' }); 
-                    triggerFlash(targetRow);
-                }
-
-                document.getElementById('return-toast').classList.add('show');
-
-            } catch(e) {
-                alert('해당 메시지의 맥락을 불러오는 데 실패했습니다.');
-            } finally {
-                hideCustomModal();
-            }
-        }
 
         window.fetchAlbumChunk = async () => {
             const btn = document.getElementById('btn-fetch-album');
