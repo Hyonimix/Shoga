@@ -740,6 +740,38 @@
             pointer-events: auto;
         }
 
+        /* Scroll to Bottom Button */
+        #scroll-bottom-btn {
+            position: absolute;
+            bottom: 80px;
+            right: 20px;
+            width: 36px;
+            height: 36px;
+            background: var(--app-bg);
+            border: 1px solid var(--header-border);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            z-index: 50;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s, transform 0.2s;
+            color: var(--sub-text-color);
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        #scroll-bottom-btn.show {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        #scroll-bottom-btn:active {
+            transform: scale(0.9);
+        }
+
         /* Jump Return Toast */
         #return-toast {
             position: absolute;
@@ -1233,6 +1265,12 @@
 
             <div id="new-msg-alert" onclick="scrollToBottom()">
                 <span>새 메시지</span>
+            </div>
+
+            <div id="scroll-bottom-btn" onclick="scrollToBottom()">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                    <path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/>
+                </svg>
             </div>
             
             <div id="return-toast" onclick="returnToOriginalPosition()">
@@ -1827,12 +1865,22 @@
         function setupScrollListener() {
             const chatArea = document.getElementById('chat-area');
             const alertBadge = document.getElementById('new-msg-alert');
+            const scrollBtn = document.getElementById('scroll-bottom-btn');
 
             chatArea.addEventListener('scroll', async () => {
                 const threshold = 50;
-                const isBottom = chatArea.scrollHeight - chatArea.scrollTop - chatArea.clientHeight <= threshold;
+                const distFromBottom = chatArea.scrollHeight - chatArea.scrollTop - chatArea.clientHeight;
+                
+                const isBottom = distFromBottom <= threshold;
                 if (isBottom) {
                     alertBadge.classList.remove('show');
+                }
+
+                // Show V-handle if scrolled up > 200px
+                if (distFromBottom > 200) {
+                    scrollBtn.classList.add('show');
+                } else {
+                    scrollBtn.classList.remove('show');
                 }
 
                 // Only auto-load history if we are in the main chat view
@@ -1845,8 +1893,9 @@
         window.scrollToBottom = () => {
             if(isJumpActive) window.returnToOriginalPosition();
             const chatArea = document.getElementById('chat-area');
-            chatArea.scrollTop = chatArea.scrollHeight;
+            chatArea.scrollTo({ top: chatArea.scrollHeight, behavior: 'smooth' }); // Smooth fast scroll
             document.getElementById('new-msg-alert').classList.remove('show');
+            document.getElementById('scroll-bottom-btn').classList.remove('show');
         };
 
         // Static Resources for Nickname Generation
