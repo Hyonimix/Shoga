@@ -185,7 +185,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getDatabase, ref, push, update, onChildAdded, onChildChanged, serverTimestamp, query, limitToLast, orderByKey, endBefore, get } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+        import { getDatabase, ref, push, update, onChildAdded, onChildChanged, serverTimestamp, query, limitToLast, orderByKey, endBefore, get, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
         const monitorPanel = document.getElementById('monitor-panel');
@@ -273,30 +273,59 @@
             logArea.scrollTop = logArea.scrollHeight;
         }
 
-        signInAnonymously(auth).catch((error) => {
-            printLog(`Auth Failed: ${error.message}`, 'err');
-            statusFloat.innerText = "AUTH ERROR";
-            statusFloat.style.color = "#ff5555";
-        });
+        let isMonitoringStarted = false; 
+        let isReconnecting = false;      
+
+        function silentAuthenticate() {
+            signInAnonymously(auth).catch((error) => {
+                printLog(`[System] Auth Error: ${error.message}. Retrying in 3s...`, 'err');
+                setTimeout(silentAuthenticate, 3000); 
+            });
+        }
 
         onAuthStateChanged(auth, (user) => {
             if (user) {
                 currentUser = user;
+                isReconnecting = false;
                 statusFloat.innerText = `● CONNECTED[${GLOBAL_ROOM_ID}]`;
                 statusFloat.style.color = "#00ff00";
-                printLog(`Connected to Firebase via API Key. Room: ${GLOBAL_ROOM_ID}`, 'sys');
+                printLog(`[System] Auth Active. Room: ${GLOBAL_ROOM_ID}`, 'sys');
 
                 if ("Notification" in window && Notification.permission === "default") {
                     Notification.requestPermission();
                 }
 
-                startMonitoring();
+                if (!isMonitoringStarted) {
+                    startMonitoring();
+                    isMonitoringStarted = true;
+                }
             } else {
                 currentUser = null;
-                statusFloat.innerText = "○ DISCONNECTED";
-                statusFloat.style.color = "#555";
+                statusFloat.innerText = "○ RECONNECTING...";
+                statusFloat.style.color = "#ffaa00";
+                
+                if (!isReconnecting) {
+                    isReconnecting = true;
+                    printLog("[System] Session expired or lost. Silently re-authenticating...", 'err');
+                    silentAuthenticate(); 
+                }
             }
         });
+
+        const connectedRef = ref(db, ".info/connected");
+        onValue(connectedRef, (snap) => {
+            if (snap.val() === true) {
+                if (isReconnecting || isMonitoringStarted) {
+                    printLog("[System] Network connection restored.", 'success');
+                }
+            } else {
+                statusFloat.innerText = "○ OFFLINE";
+                statusFloat.style.color = "#ff5555";
+                printLog("[System] Network disconnected. Waiting for connection...", 'err');
+            }
+        });
+
+        silentAuthenticate();
 
         function formatJsonEntry(data) {
             let jsonString = JSON.stringify(data, null, 2);
