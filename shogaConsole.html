@@ -194,13 +194,44 @@
         const logArea = document.getElementById('log-area');
         const cmdInput = document.getElementById('cmd-input');
 
-        const sessionApiKey = sessionStorage.getItem('temp_console_api_key');
-        const sessionNick = sessionStorage.getItem('temp_console_nick');
-        const sessionRoomId = sessionStorage.getItem('temp_console_room_id');
+        const VAULT_NAME = 'shoga_vault';
+        const enc = new TextEncoder();
+        const dec = new TextDecoder();
+        const getK = async () => {
+            const b = await crypto.subtle.importKey('raw', enc.encode('shoga_v1'), 'PBKDF2', false, ['deriveKey']);
+            return crypto.subtle.deriveKey({ name: 'PBKDF2', salt: enc.encode('shoga_s'), iterations: 1000, hash: 'SHA-256' }, b, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
+        };
 
-        sessionStorage.removeItem('temp_console_api_key');
-        sessionStorage.removeItem('temp_console_nick');
-        sessionStorage.removeItem('temp_console_room_id');
+        let tK = sessionStorage.getItem('temp_console_api_key');
+        let tN = sessionStorage.getItem('temp_console_nick');
+        let tR = sessionStorage.getItem('temp_console_room_id');
+
+        if (tK) {
+            const k = await getK();
+            const iv = crypto.getRandomValues(new Uint8Array(12));
+            const eb = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, k, enc.encode(JSON.stringify({ tK, tN, tR })));
+            const c = new Uint8Array(iv.length + eb.byteLength);
+            c.set(iv); c.set(new Uint8Array(eb), iv.length);
+            sessionStorage.setItem(VAULT_NAME, btoa(String.fromCharCode(...c)));
+            sessionStorage.removeItem('temp_console_api_key');
+            sessionStorage.removeItem('temp_console_nick');
+            sessionStorage.removeItem('temp_console_room_id');
+        } else {
+            const v = sessionStorage.getItem(VAULT_NAME);
+            if (v) {
+                try {
+                    const c = Uint8Array.from(atob(v), x => x.charCodeAt(0));
+                    const k = await getK();
+                    const db = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: c.slice(0, 12) }, k, c.slice(12));
+                    const d = JSON.parse(dec.decode(db));
+                    tK = d.tK; tN = d.tN; tR = d.tR;
+                } catch (e) { console.error("Vault recovery failed"); }
+            }
+        }
+
+        const sessionApiKey = tK;
+        const sessionNick = tN;
+        const sessionRoomId = tR;
 
         if (!sessionApiKey) {
             statusFloat.innerText = "MISSING API KEY";
@@ -315,6 +346,8 @@
         const connectedRef = ref(db, ".info/connected");
         onValue(connectedRef, (snap) => {
             if (snap.val() === true) {
+                statusFloat.innerText = `● CONNECTED[${GLOBAL_ROOM_ID}]`;
+                statusFloat.style.color = "#00ff00";
                 if (isReconnecting || isMonitoringStarted) {
                     printLog("[System] Network connection restored.", 'success');
                 }
