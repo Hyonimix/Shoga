@@ -343,18 +343,22 @@
             }
         });
 
+        let hasConnectedOnce = false;
         const connectedRef = ref(db, ".info/connected");
         onValue(connectedRef, (snap) => {
             if (snap.val() === true) {
+                hasConnectedOnce = true;
                 statusFloat.innerText = `● CONNECTED[${GLOBAL_ROOM_ID}]`;
                 statusFloat.style.color = "#00ff00";
                 if (isReconnecting || isMonitoringStarted) {
                     printLog("[System] Network connection restored.", 'success');
                 }
             } else {
-                statusFloat.innerText = "○ OFFLINE";
-                statusFloat.style.color = "#ff5555";
-                printLog("[System] Network disconnected. Waiting for connection...", 'err');
+                if (hasConnectedOnce) {
+                    statusFloat.innerText = "○ OFFLINE";
+                    statusFloat.style.color = "#ff5555";
+                    printLog("[System] Network disconnected. Waiting for connection...", 'err');
+                }
             }
         });
 
